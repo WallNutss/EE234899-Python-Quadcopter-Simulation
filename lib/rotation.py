@@ -29,9 +29,9 @@ def RPY2XYZ(angles): # ABrevation of Roll,Pitch,Yaw to XYZ Global Frame
 
     return R
 
-def Deg2Rad(x):
+def D2R(x):
     return (x/180)*pi
 
-def Rad2Deg(x):
+def R2D(x):
     return (x/pi)*180
 

@@ -1,5 +1,6 @@
 import numpy as np
 import math
+from lib.rotation import RPY2XYZ
 
 class quadcopter:
     def __init__(self, Ts = 1.0/50.0):
@@ -28,12 +29,42 @@ class quadcopter:
         self.u4_min          = -0.73    # Nm
 
         # States of the Drone (Position, Orientation, Attitude)
+        self.initPosition = np.array([0.3, 0.6, 0.2]).reshape(3,1)
         self.Ts     = Ts                # s     , Time sampling of the simulation
         self.state  = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # X,Y,Z, dX,dY,dZ, varphi,theta,psi, p,q,r
         '''
         state is the thing we measured. X,Y,Z means it on global frame where x,y,z is on the body frame
         '''
         self.dstate = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # The derivative of the state
-        self.u      = np.array([self.u1_min, self.u2_min, self.u3_min, self.u4_min]).reshape(4.1) # Control Inputs for the dynamics mathematical model after
-        self.T      = 0.0                                                                         # U1
-        self.M      = np.array([0.0, 0.0, 0.0]).reshape(3,1)                                      # U2, U3, U4 respectively
+        self.u      = np.array([self.u1_min, self.u2_min, self.u3_min, self.u4_min]).reshape(4,1)                # Control Inputs for the dynamics mathematical model after
+        self.T      = 0.0                                                                                        # U1
+        self.M      = np.array([0.0, 0.0, 0.0]).reshape(3,1)                                                     # U2, U3, U4 respectively
+
+    def DynamicSolver(self):
+        """
+        Perform a calculation based on Quadcopter Dynamic Mathematical Model
+
+        Args
+            self:
+
+        Return
+            Position and Attitude of Quadcopter in Global Frame 
+        """
+
+        pass
+    
+    def updateState(self):
+        """
+        Perform a calculation based on Quadcopter Dynamic Mathematical Model
+
+        Args
+            self:
+
+        Return
+            Position and Attitude of Quadcopter in Global Frame 
+        """
+        # Updating Simulation time
+        # ??
+
+        # Calling for dynamic mathematical model calculation
+        self.DynamicSolver()
