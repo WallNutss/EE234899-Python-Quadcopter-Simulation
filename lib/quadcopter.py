@@ -1,5 +1,5 @@
 import numpy as np
-import math
+from math import pi, sin, cos, tan, atan
 from lib.rotation import RPY2XYZ, SpecialR, D2R, R2D
 
 # Import Controller
@@ -93,10 +93,11 @@ class quadcopter:
     def DynamicSolver(self):
         """
         Perform a calculation based on Quadcopter Dynamic Mathematical Model
-
         Args
-            self:
-
+            self.state[0:3]  = X,Y,Z
+            self.state[3:6]  = dX,dY,dZ
+            self.state[6:9]  = 𝜑,𝜃,𝜓
+            self.state[9:12] = p,q,r
         Return
             Double Derivative Position and Attitude of Quadcopter in Global Frame 
         """
@@ -129,8 +130,10 @@ class quadcopter:
         """
         Perform a update pose based on calculation we had from Dynamic Solver. It's there but not in the shape we want
         Args
-            self:
-
+            self.dstate[0:3]  = dX,dY,dZ
+            self.dstate[3:6]  = ddX,ddY,ddZ
+            self.dstate[6:9]  = d𝜑,d𝜃,d𝜓
+            self.dstate[9:12] = dp,dq,dr
         Return
             Position 
         """
@@ -158,7 +161,8 @@ class quadcopter:
 
         self.phi_des = Reference[0]
         self.theta_des = Reference[1]
-        self.psi_des = Reference[2]
+        #self.psi_des = Reference[2]
+        print(self.psi_des)
 
         # Getting the error from reference - measurement
         self.phi_err = self.phi_des - phi
@@ -188,5 +192,56 @@ class quadcopter:
         self.M = self.U[1:4]
 
     def positionController(self, Reference):
+        #Getting the measurement first, this is on Inertial Frame {EF}
+        x_pos = self.state[0]
+        y_pos = self.state[1]
+        z_pos = self.state[2]
+
+        #Getting the Reference,also on Inertial Frame {EF}
+        self.x_des = Reference[0]
+        self.y_des = Reference[1]
+        self.z_des = Reference[2]
+
+        # Getting the error from reference - measurement
+        self.x_err = self.x_des - x_pos
+        self.y_err = self.y_des - y_pos
+        self.z_err = self.z_des - z_pos
+
+        # Feedback Linearization Start
+        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
+        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
+        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
+
+        # Control to Desired Angle Conversion
+        # ux, uy, uz equals to double derivative of the error itself
+        # Desired Phi
+        a = (-ux)/(-uz + self.g)
+        b = (-uy)/(-uz + self.g)
+        c = cos(self.psi_des)
+        d = sin(self.psi_des)
+
+        if self.psi_des < pi/4 or self.psi_des > pi/4:
+            self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
+        else:
+            self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
         
-        pass
+        #Desired Theta
+        self.theta = atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
+                            ((-uy*sin(self.state[8]))/(-uz+self.g)))
+        
+        self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
+
+        # Updating Error Value
+        self.x_err_prev = self.x_err
+        self.x_err_sum = self.x_err_sum + self.x_err
+
+        self.y_err_prev = self.y_err
+        self.y_err_sum = self.y_err_sum + self.y_err
+
+        self.z_err_prev = self.z_err
+        self.z_err_sum = self.z_err_sum + self.z_err  
+        
+
+
+
+        

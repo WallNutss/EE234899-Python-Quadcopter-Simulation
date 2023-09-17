@@ -1,5 +1,5 @@
 import numpy as np
-import math
+import math 
 from matplotlib import pyplot as plt
 from matplotlib import animation
 
@@ -68,11 +68,17 @@ ax.set_xlim(-1, 1)
 ax.set_ylim(-1, 1)
 ax.set_zlim(0, 1)
 
-phi_ref     = D2R(-10)
+phi_ref     = D2R(-5)
 theta_ref   = D2R(0)
 psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
+
+x_des       = 1.0
+y_des       = 1.0
+z_des       = 0.8
+
+PositionRef = np.array([x_des, y_des, z_des])
 
 # ------------- Start Simulation ------------- #
 def update_point(n):
@@ -85,7 +91,11 @@ def update_point(n):
     """
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
     Quadcopter.DynamicSolver()
+    # Planner for Yaw Reference
+    #print(Quadcopter.state[0][0])
+    Quadcopter.psi_des = math.atan2( Quadcopter.state[1] - PositionRef[1], Quadcopter.state[0]- PositionRef[0] )
     # Quadcopter for Position Controller, Where Outer Loop will 
+    Quadcopter.positionController(PositionRef)
     # Control the unit of the quadcopter
     Quadcopter.attitudeController(AngleRef)
     # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
