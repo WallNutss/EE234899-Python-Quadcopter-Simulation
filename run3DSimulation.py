@@ -69,7 +69,7 @@ ax.set_ylim(-1, 1)
 ax.set_zlim(0, 1)
 
 phi_ref     = D2R(-10)
-theta_ref   = D2R(20)
+theta_ref   = D2R(0)
 psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])

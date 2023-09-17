@@ -101,11 +101,11 @@ class quadcopter:
             Double Derivative Position and Attitude of Quadcopter in Global Frame 
         """
         # Getting the rotation matrix first
-        bRe = RPY2XYZ(self.angles)
+        bRe = RPY2XYZ(self.state[6:9])
         R   = bRe.transpose()
         
         # Derivative State 1 to 3, the velocity, because past state define the future state
-        self.dstate[0:3] = self.dr
+        self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (-self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
@@ -113,11 +113,11 @@ class quadcopter:
                            ((1/self.m) * np.array([self.ktd, self.ktd, self.ktd]).reshape(3,1))
 
         # Calculation from the Special Transfer Matrix for Angular Rates (Inertial Frame
-        self.dstate[6:9] = np.dot(SpecialR(self.angles), self.w)
+        self.dstate[6:9] = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
         
         # Calculation of Rotational Motion of the Drone (Body Frame) which is the Acceleration of the Model
-        Iw = np.dot(self.Inert, self.w)
-        self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M - np.cross(self.w[:,0], Iw[:,0]).reshape(3,1)))
+        Iw = np.dot(self.Inert, self.state[9:12])
+        self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M - np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1)))
 
         # Immediately Integral of dstate[3:6] which is the result of acceleration in Integral Frame to get Velocity also in {EF}
         # self.dstate[0:3] = self.dstate[0:3] + self.dstate[3:6] * self.Ts
@@ -152,9 +152,9 @@ class quadcopter:
 
     def attitudeController(self, Reference):
         #Getting the measurement first
-        phi = self.angles[0]
-        theta = self.angles[1]
-        psi = self.angles[2]
+        phi = self.state[6]
+        theta = self.state[7]
+        psi = self.state[8]
 
         self.phi_des = Reference[0]
         self.theta_des = Reference[1]
