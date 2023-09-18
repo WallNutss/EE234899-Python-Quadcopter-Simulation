@@ -5,6 +5,7 @@ import math
 def PID(Ts, err, err_prev, err_sum, gains):
     """
     Performing a Proportional-Integral-Derivative (PID) controller
+    
     Args
         Ts          = Time Sampling of the simulation
         err         = The error difference between reference and measurement value
@@ -18,3 +19,21 @@ def PID(Ts, err, err_prev, err_sum, gains):
 
 def SMC():
     pass
+
+def antiWindup(x, x_min, x_max):
+    """
+    Perform Anti-Windup for any system that make system fuck up
+    
+    Args
+        x     : Value need to be re-evaluated
+        x_min : Minimum boundary
+        x_max : Maximum boundary
+    Return
+        More stable x value
+    """
+    if x > x_max:
+        return x_max
+    elif x < x_min:
+        return x_min
+    else:
+        return x

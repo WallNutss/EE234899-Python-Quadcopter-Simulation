@@ -3,7 +3,7 @@ from math import pi, sin, cos, tan, atan
 from lib.rotation import RPY2XYZ, SpecialR, D2R, R2D
 
 # Import Controller
-from lib.controller import PID
+from lib.controller import PID, antiWindup
 
 class quadcopter:
     def __init__(self, Ts = 1.0/50.0):
@@ -37,7 +37,7 @@ class quadcopter:
 
         # States of the Drone (Position, Orientation, Attitude)
         self.Time   = 0.0               # s     , Initial Time Simulation
-        self.initPosition = np.array([0.3, 0.6, 0.2]).reshape(3,1)
+        self.initPosition = np.array([0.0, 0.0, 0.2]).reshape(3,1)
         self.Ts     = Ts                # s     , Time sampling of the simulation
         self.state  = np.array([self.initPosition[0][0], self.initPosition[1][0], self.initPosition[2][0],\
                                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # X,Y,Z, dX,dY,dZ, 𝜑,𝜃,𝜓, p,q,r
@@ -110,8 +110,8 @@ class quadcopter:
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (-self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
-                           ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1)))- \
-                           ((1/self.m) * np.array([self.ktd, self.ktd, self.ktd]).reshape(3,1))
+                           ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1)))#- \
+                           #((1/self.m) * np.array([self.ktd, self.ktd, self.ktd]).reshape(3,1))
 
         # Calculation from the Special Transfer Matrix for Angular Rates (Inertial Frame
         self.dstate[6:9] = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
@@ -139,12 +139,12 @@ class quadcopter:
         """
         # Updating Simulation time
         self.Time = self.Time + self.Ts
-
+        
         # Calling for dynamic mathematical model calculation    
         self.DynamicSolver()
 
         # Integration from derivative state so we can get Original State
-        self.state = self.state + (self.dstate * self.Ts)
+        self.state  = self.state + (self.dstate * self.Ts)
         # Update and Assigning Each Invidual State to Duplicate Variable
         # Position {EF}
         self.r      = self.state[0:3]
@@ -153,16 +153,15 @@ class quadcopter:
         self.angles = self.state[6:9]
         self.w      = self.state[9:12]
 
-    def attitudeController(self, Reference):
+    def attitudeController(self):
         #Getting the measurement first
         phi = self.state[6]
         theta = self.state[7]
         psi = self.state[8]
 
-        self.phi_des = Reference[0]
-        self.theta_des = Reference[1]
+        #self.phi_des = Reference[0]
+        #self.theta_des = Reference[1]
         #self.psi_des = Reference[2]
-        print(self.psi_des)
 
         # Getting the error from reference - measurement
         self.phi_err = self.phi_des - phi
@@ -176,6 +175,11 @@ class quadcopter:
         # U4
         self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
 
+        # Anti Windup
+        self.U[1] = antiWindup(self.U[1], self.u1_min, self.u1_max)
+        self.U[2] = antiWindup(self.U[2], self.u2_min, self.u2_max)
+        self.U[3] = antiWindup(self.U[3], self.u3_min, self.u3_max)
+        
         # Updating Error Value
         self.phi_err_prev = self.phi_err
         self.phi_err_sum = self.phi_err_sum + self.phi_err
@@ -187,8 +191,9 @@ class quadcopter:
         self.psi_err_sum = self.psi_err_sum + self.psi_err   
 
         # Updating Control Blocks
-        self.U[0] = (self.m * self.g)*1.2
         self.Thrust = self.U[0]
+        # Uncomment if you want to see z-hovering to z-desired work
+        #self.U[1:4] = np.array([0.0, 0.0, 0.0]).reshape(3,1)
         self.M = self.U[1:4]
 
     def positionController(self, Reference):
@@ -208,9 +213,9 @@ class quadcopter:
         self.z_err = self.z_des - z_pos
 
         # Feedback Linearization Start
-        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
-        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
-        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-1.0, 0.0,-2.0]))
+        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([0.1, 0.0, 0.01]))
+        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.1, 0.0,-0.01]))
+        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-1, -0.0,-1.5]))
 
         # Control to Desired Angle Conversion
         # ux, uy, uz equals to double derivative of the error itself
@@ -226,9 +231,13 @@ class quadcopter:
             self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
         
         #Desired Theta
-        self.theta = atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
+        self.theta_des = atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
                             ((-uy*sin(self.state[8]))/(-uz+self.g)))
         
+        # Anti Windup
+        self.phi_des = antiWindup(self.phi_des, D2R(-40), D2R(40))
+        self.theta_des = antiWindup(self.theta_des, D2R(-40), D2R(40))
+
         self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
 
         # Updating Error Value
