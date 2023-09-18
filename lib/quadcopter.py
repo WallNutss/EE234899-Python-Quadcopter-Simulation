@@ -37,7 +37,7 @@ class quadcopter:
 
         # States of the Drone (Position, Orientation, Attitude)
         self.Time   = 0.0               # s     , Initial Time Simulation
-        self.initPosition = np.array([0.0, 0.0, 0.2]).reshape(3,1)
+        self.initPosition = np.array([0.0, 0.0, 0.0]).reshape(3,1)
         self.Ts     = Ts                # s     , Time sampling of the simulation
         self.state  = np.array([self.initPosition[0][0], self.initPosition[1][0], self.initPosition[2][0],\
                                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # X,Y,Z, dX,dY,dZ, 𝜑,𝜃,𝜓, p,q,r
