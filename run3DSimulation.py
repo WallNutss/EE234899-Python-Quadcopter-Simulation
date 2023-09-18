@@ -2,6 +2,7 @@ import numpy as np
 import math 
 from matplotlib import pyplot as plt
 from matplotlib import animation
+from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 
 # Importing class Quadcopter
 from lib.quadcopter import quadcopter
@@ -64,10 +65,13 @@ ax.set_xlabel('X')
 ax.set_ylabel('Y')
 ax.set_zlabel('Z')
 
+ax.xaxis.set_major_locator(MultipleLocator(0.5))
+ax.yaxis.set_major_locator(MultipleLocator(0.5))
+
 # Set plot limits
 ax.set_xlim(-1, 1)
 ax.set_ylim(-1, 1)
-ax.set_zlim(0, 1)
+ax.set_zlim(0, 2)
 
 phi_ref     = D2R(0)
 theta_ref   = D2R(0)
@@ -75,12 +79,13 @@ psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
-x_des       = -0.7
-y_des       = 0.6
-z_des       = 0.8
+x_des       = 5.7
+y_des       = -5.6
+z_des       = 1.8
 
 PositionRef = np.array([x_des, y_des, z_des])
 
+# ax.plot(np.array([0.0, PositionRef[0]]),np.array([0.0, PositionRef[1]]),np.array([0.0, PositionRef[2]]), '--r')
 ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro')
 
 # ------------- Start Simulation ------------- #
@@ -101,6 +106,7 @@ def update_point(n):
     # Quadcopter for Position Controller, Where Outer Loop will 
     Quadcopter.positionController(PositionRef)
     # Control the unit of the quadcopter
+
     Quadcopter.attitudeController()
     # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
     Quadcopter.updateState()
@@ -143,5 +149,5 @@ def update_point(n):
     return motor13, motor24, state_display, time_display
   
 ani = animation.FuncAnimation(fig, update_point, interval=47, blit=True)
-plt.grid()
+#plt.grid()
 plt.show()

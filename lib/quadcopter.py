@@ -90,14 +90,19 @@ class quadcopter:
         self.y_err_sum = 0.0
         self.z_err_sum = 0.0
 
+        # For Logs Purpose
+        self.angleLogs = np.array([0.0, 0.0, 0.0])
+        self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
+        self.posLogs   = np.array([0.0, 0.0, 0.0])
+
     def DynamicSolver(self):
         """
         Perform a calculation based on Quadcopter Dynamic Mathematical Model
         Args
-            self.state[0:3]  = X,Y,Z
-            self.state[3:6]  = dX,dY,dZ
-            self.state[6:9]  = 𝜑,𝜃,𝜓
-            self.state[9:12] = p,q,r
+            self.state[0:3]  = X,Y,Z {EF}
+            self.state[3:6]  = dX,dY,dZ {EF}
+            self.state[6:9]  = 𝜑,𝜃,𝜓 {EF} ~ {BF}
+            self.state[9:12] = p,q,r {BF}
         Return
             Double Derivative Position and Attitude of Quadcopter in Global Frame 
         """
@@ -109,11 +114,11 @@ class quadcopter:
         self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
-        self.dstate[3:6] = (-self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
+        self.dstate[3:6] = (-self.g * np.array([0.0, 0.0, 1.02]).reshape(3,1)) + \
                            ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1)))#- \
                            #((1/self.m) * np.array([self.ktd, self.ktd, self.ktd]).reshape(3,1))
 
-        # Calculation from the Special Transfer Matrix for Angular Rates (Inertial Frame
+        # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame)
         self.dstate[6:9] = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
         
         # Calculation of Rotational Motion of the Drone (Body Frame) which is the Acceleration of the Model
@@ -176,9 +181,9 @@ class quadcopter:
         self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
 
         # Anti Windup
-        self.U[1] = antiWindup(self.U[1], self.u1_min, self.u1_max)
-        self.U[2] = antiWindup(self.U[2], self.u2_min, self.u2_max)
-        self.U[3] = antiWindup(self.U[3], self.u3_min, self.u3_max)
+        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
+        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
+        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
         
         # Updating Error Value
         self.phi_err_prev = self.phi_err
