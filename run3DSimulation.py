@@ -8,6 +8,8 @@ from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 from lib.quadcopter import quadcopter
 # Importing rotation matrix
 from lib.rotation import RPY2XYZ, D2R, R2D
+# Import Anti Windup
+from lib.controller import antiWindup
 
 # Body Frame Location for Transformation Matrix Preparation
             # Position Motor1  Motor2 Motor3  Motor4
@@ -27,7 +29,12 @@ state_display = ax.text2D(0.17, 0.90, "green" ,color='green', transform=ax.trans
 time_display = ax.text2D(0.17, 0.85, "red" ,color='red', transform=ax.transAxes)
 
 # Create a another figure for angle
-# fig2, ax2 = plt.subplots(3, 1)
+# fig2, ax2 = plt.subplots()
+# phiLogs, = ax2.plot([],[], lw=2)
+# ax.set_xlim(0, 10)
+# ax.set_ylim(-90, 90)
+# ax.set_xlabel('X-axis (Deg)')
+# ax.set_ylabel('Y-axis (Time)')
 
 # Rotation Matrix, when Phi=Psi==0, Theta=20, In X Configuration shape, + sign mean that the drone will move backward
 angles = np.array([D2R(0), D2R(0), D2R(0)])
@@ -72,7 +79,7 @@ ax.zaxis.set_major_locator(MultipleLocator(0.5))
 # Set plot limits
 ax.set_xlim(-1, 1)
 ax.set_ylim(-1, 1)
-ax.set_zlim(0, 2)
+ax.set_zlim(0, 5)
 
 phi_ref     = D2R(0)
 theta_ref   = D2R(0)
@@ -80,14 +87,15 @@ psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
-x_des       = -1.0
-y_des       = -1.0
-z_des       = 1.0
+x_des       = 0.8
+y_des       = 0.8
+z_des       = 0.0
 
 PositionRef = np.array([x_des, y_des, z_des])
 
 # ax.plot(np.array([0.0, PositionRef[0]]),np.array([0.0, PositionRef[1]]),np.array([0.0, PositionRef[2]]), '--r')
 ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro')
+# ax2[0].plot(Quadcopter.timeLogs[:], Quadcopter.angleLogs[:,0])
 
 # ------------- Start Simulation ------------- #
 def update_point(n):
@@ -103,11 +111,12 @@ def update_point(n):
     Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
     #print(Quadcopter.state[0][0])
-    Quadcopter.psi_des = math.atan2( Quadcopter.state[1] - PositionRef[1], Quadcopter.state[0]- PositionRef[0] )
+    Quadcopter.psi_des = math.atan2( Quadcopter.state[1] - PositionRef[1], Quadcopter.state[0]- PositionRef[0])
+    Quadcopter.psi_des = antiWindup(Quadcopter.psi_des, 0, 0.99)
     # Quadcopter for Position Controller, Where Outer Loop will
     Quadcopter.positionController(PositionRef)
 
-    innerLoop = 2
+    innerLoop = 4
     for i in range(0, innerLoop): 
         # Control the unit of the quadcopter
         Quadcopter.attitudeController()
@@ -149,8 +158,12 @@ def update_point(n):
         time_display.set_text('Simulation time = %.2fs' % (Quadcopter.Time))
         state_display.set_text('Position of the quad: \n x = %.1fm y = %.1fm z = %.1fm' % (states[0], states[1], states[2]))
 
+        # Logs Angle Data
+        #phiLogs.set_data(Quadcopter.timeLogs[:,].flatten(),Quadcopter.angleLogs[:,0])
+
+
     return motor13, motor24, state_display, time_display
   
-ani = animation.FuncAnimation(fig, update_point, interval=60, blit=True)
+ani = animation.FuncAnimation(fig, update_point, interval=47, blit=True)
 #plt.grid()
 plt.show()

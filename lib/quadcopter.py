@@ -37,7 +37,7 @@ class quadcopter:
 
         # States of the Drone (Position, Orientation, Attitude)
         self.Time   = 0.0               # s     , Initial Time Simulation
-        self.initPosition = np.array([0.0, 0.0, 0.0]).reshape(3,1)
+        self.initPosition = np.array([0.0, 0.0, 3.0]).reshape(3,1)
         self.Ts     = Ts                # s     , Time sampling of the simulation
         self.state  = np.array([self.initPosition[0][0], self.initPosition[1][0], self.initPosition[2][0],\
                                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # X,Y,Z, dX,dY,dZ, 𝜑,𝜃,𝜓, p,q,r
@@ -94,6 +94,7 @@ class quadcopter:
         self.angleLogs = np.array([0.0, 0.0, 0.0])
         self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
         self.posLogs   = np.array([0.0, 0.0, 0.0])
+        self.timeLogs  = np.array([0.0])
 
     def DynamicSolver(self):
         """
@@ -158,6 +159,10 @@ class quadcopter:
         self.angles = self.state[6:9]
         self.w      = self.state[9:12]
 
+        # Logs & History
+        self.angleLogs = np.vstack((self.angleLogs, self.angles.reshape(3,)))
+        self.timeLogs  = np.vstack((self.timeLogs, self.Time))
+
     def attitudeController(self):
         #Getting the measurement first
         phi = self.state[6]
@@ -181,6 +186,7 @@ class quadcopter:
         self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
 
         # Anti Windup
+        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u2_max)
         self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
         self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
         self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
@@ -199,6 +205,7 @@ class quadcopter:
         self.Thrust = self.U[0]
         # Uncomment if you want to see z-hovering to z-desired work
         #self.U[1:4] = np.array([0.0, 0.0, 0.0]).reshape(3,1)
+        #self.U[2] = 0
         self.M = self.U[1:4]
 
     def positionController(self, Reference):
@@ -218,9 +225,9 @@ class quadcopter:
         self.z_err = self.z_des - z_pos
 
         # Feedback Linearization Start
-        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([0.1, 0.0, 0.01]))
-        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.1, 0.0,-0.01]))
-        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-1, -0.0,-1.5]))
+        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.4, 0.0, -0.2]))
+        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.4, 0.0,-0.2]))
+        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-5, -0.0,-1.5]))
 
         # Control to Desired Angle Conversion
         # ux, uy, uz equals to double derivative of the error itself
@@ -231,12 +238,12 @@ class quadcopter:
         d = sin(self.psi_des)
 
         if self.psi_des < pi/4 or self.psi_des > pi/4:
-            self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
+            self.phi_des = -atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
         else:
-            self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
+            self.phi_des = -atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
         
         #Desired Theta
-        self.theta_des = atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
+        self.theta_des = -atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
                             ((-uy*sin(self.state[8]))/(-uz+self.g)))
         
         # Anti Windup
