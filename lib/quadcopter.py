@@ -1,6 +1,7 @@
 import numpy as np
 from math import pi, sin, cos, tan, atan
 from lib.rotation import RPY2XYZ, SpecialR, D2R, R2D
+import keyboard
 
 # Import Controller
 from lib.controller import PID, antiWindup
@@ -36,21 +37,21 @@ class quadcopter:
         self.u4_min          = -0.73    # Nm
 
         # States of the Drone (Position, Orientation, Attitude)
-        self.Time   = 0.0               # s     , Initial Time Simulation
-        self.initPosition = np.array([0.0, 0.0, 3.0]).reshape(3,1)
+        self.Time   = 0.0                                                                           # seconds , Initial Time Simulation
+        self.initPosition = np.array([0.0, 0.0, 0.0]).reshape(3,1)                                  # X,Y,Z , Position Initial in Global Frame
         self.Ts     = Ts                # s     , Time sampling of the simulation
         self.state  = np.array([self.initPosition[0][0], self.initPosition[1][0], self.initPosition[2][0],\
                                  0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]).reshape(12,1)       # X,Y,Z, dX,dY,dZ, 𝜑,𝜃,𝜓, p,q,r
-                                                                                                                 # First 6 State in Inertial Frame where the last of them in Body Frame
+                                                                                                   # First 6 State in Inertial Frame where the last of them in Body Frame
         self.r      = self.state[0:3]
         self.dr     = self.state[3:6]
         '''
         state is the thing we measured. X,Y,Z means it on global frame where x,y,z is on the body frame
         '''
-        self.dstate = np.array([0.0, 0.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).reshape(12,1)       # The derivative of the state , dX,dY,Z, ddX,ddY,ddZ, d𝜑,d𝜃,d𝜓, dp,dq,dr
-        self.U      = np.array([self.u1_min, self.u2_min, self.u3_min, self.u4_min]).reshape(4,1)                             # Control Inputs for the dynamics mathematical model after
-        self.Thrust = self.U[0]                                                                                        # U1
-        self.M      = self.U[1:4]                                                   # U2, U3, U4 respectively
+        self.dstate = np.array([0.0, 0.0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).reshape(12,1)              # The derivative of the state , dX,dY,Z, ddX,ddY,ddZ, d𝜑,d𝜃,d𝜓, dp,dq,dr
+        self.U      = np.array([self.u1_min, self.u2_min, self.u3_min, self.u4_min]).reshape(4,1)   # Control Inputs for the dynamics mathematical model after
+        self.Thrust = self.U[0]                                                                     # U1
+        self.M      = self.U[1:4]                                                                   # U2, U3, U4 respectively
 
         # States of the Drone Orientation
         self.angles = self.state[6:9]                                        # 𝜑,𝜃,𝜓 , the working angle in body frame
@@ -91,10 +92,10 @@ class quadcopter:
         self.z_err_sum = 0.0
 
         # For Logs Purpose
-        self.angleLogs = np.array([0.0, 0.0, 0.0])
-        self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
-        self.posLogs   = np.array([0.0, 0.0, 0.0])
         self.timeLogs  = np.array([0.0])
+        self.phiLogs = np.array([0.0])
+        self.posLogs   = np.array([0.0, 0.0, 0.0])
+        self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
 
     def DynamicSolver(self):
         """
@@ -115,16 +116,17 @@ class quadcopter:
         self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
-        self.dstate[3:6] = (-self.g * np.array([0.0, 0.0, 1.02]).reshape(3,1)) + \
-                           ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1)))#- \
-                           #((1/self.m) * np.array([self.ktd, self.ktd, self.ktd]).reshape(3,1))
+        self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
+                           ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1))) - \
+                            ((1/self.m) * np.array([self.ktd * self.dstate[0], self.ktd * self.dstate[1], self.ktd * self.dstate[2]]).reshape(3,1))
 
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame)
         self.dstate[6:9] = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
         
         # Calculation of Rotational Motion of the Drone (Body Frame) which is the Acceleration of the Model
         Iw = np.dot(self.Inert, self.state[9:12])
-        self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M - np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1)))
+        self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M -\
+                                                                  np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1)))
 
         # Immediately Integral of dstate[3:6] which is the result of acceleration in Integral Frame to get Velocity also in {EF}
         # self.dstate[0:3] = self.dstate[0:3] + self.dstate[3:6] * self.Ts
@@ -149,7 +151,7 @@ class quadcopter:
         # Calling for dynamic mathematical model calculation    
         self.DynamicSolver()
 
-        # Integration from derivative state so we can get Original State
+        # Integration from derivative state so we can get Original State // Dead Reckoning
         self.state  = self.state + (self.dstate * self.Ts)
         # Update and Assigning Each Invidual State to Duplicate Variable
         # Position {EF}
@@ -160,8 +162,9 @@ class quadcopter:
         self.w      = self.state[9:12]
 
         # Logs & History
-        self.angleLogs = np.vstack((self.angleLogs, self.angles.reshape(3,)))
-        self.timeLogs  = np.vstack((self.timeLogs, self.Time))
+        self.phiLogs = np.append(self.phiLogs, R2D(self.angles[0]))
+        self.timeLogs  = np.append(self.timeLogs, self.Time)
+        self.posLogs = np.vstack((self.posLogs, self.r.flatten()))
 
     def attitudeController(self):
         #Getting the measurement first
@@ -203,9 +206,6 @@ class quadcopter:
 
         # Updating Control Blocks
         self.Thrust = self.U[0]
-        # Uncomment if you want to see z-hovering to z-desired work
-        #self.U[1:4] = np.array([0.0, 0.0, 0.0]).reshape(3,1)
-        #self.U[2] = 0
         self.M = self.U[1:4]
 
     def positionController(self, Reference):
@@ -247,8 +247,8 @@ class quadcopter:
                             ((-uy*sin(self.state[8]))/(-uz+self.g)))
         
         # Anti Windup
-        self.phi_des = antiWindup(self.phi_des, D2R(-40), D2R(40))
-        self.theta_des = antiWindup(self.theta_des, D2R(-40), D2R(40))
+        self.phi_des = antiWindup(self.phi_des, D2R(-60), D2R(60))
+        self.theta_des = antiWindup(self.theta_des, D2R(-60), D2R(60))
 
         self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
 

@@ -6,7 +6,7 @@ from math import sin, cos, tan, pi
 # This is the rotation matrix containing rotation
 # from the Body Frame --> Earth/Inertial Frame
 
-def RPY2XYZ(angles): # Abrevation of Roll,Pitch,Yaw to XYZ Global Frame
+def RPY2XYZ(angles): # Abrevation of Roll,Pitch,Yaw from Body Frame to XYZ Global Frame
     """
     Perform a rotation matrix calculation based on the body Frame Rz, Ry, Rx with order of calculation respective of that
     Args
