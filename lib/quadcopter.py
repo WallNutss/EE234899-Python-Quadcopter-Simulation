@@ -8,7 +8,6 @@ from lib.controller import PID, antiWindup
 
 class quadcopter:
     def __init__(self, Ts = 1.0/50.0):
-
         # Tello Params
         self.g      = 9.81              # m/s^2             , gravity acceleration
         self.m      = 0.08              # kg                , mass of the drone
@@ -20,6 +19,7 @@ class quadcopter:
         self.b      = 0.00000566        # kgm/ (rad)^2      , Thrust Constant
         self.d      = 0.0000000580644   # kgm^2/ (rad)^2    , Drag factor
         self.ktd    = 0.03365           # kg/s              , Translational drag coefficient
+        self.kad    = 0.004609          # kgm^2/rad         , Aerodynamical drag coefficient
         self.Inert  = np.array([self.Ixx,         0,         0, \
                                         0, self.Iyy,         0, \
                                         0,        0,  self.Izz]).reshape(3,3)
@@ -93,7 +93,7 @@ class quadcopter:
 
         # For Logs Purpose
         self.timeLogs  = np.array([0.0])
-        self.phiLogs = np.array([0.0])
+        self.angleLogs = np.array([0.0, 0.0, 0.0])
         self.posLogs   = np.array([0.0, 0.0, 0.0])
         self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
 
@@ -126,7 +126,8 @@ class quadcopter:
         # Calculation of Rotational Motion of the Drone (Body Frame) which is the Acceleration of the Model
         Iw = np.dot(self.Inert, self.state[9:12])
         self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M -\
-                                                                  np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1)))
+                                                                 np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1) +\
+                                                                 np.array([self.kad * (self.dstate[6])**2, self.kad * (self.dstate[7])**2, self.kad * (self.dstate[8])**2]).reshape(3,1)))
 
         # Immediately Integral of dstate[3:6] which is the result of acceleration in Integral Frame to get Velocity also in {EF}
         # self.dstate[0:3] = self.dstate[0:3] + self.dstate[3:6] * self.Ts
@@ -162,9 +163,10 @@ class quadcopter:
         self.w      = self.state[9:12]
 
         # Logs & History
-        self.phiLogs = np.append(self.phiLogs, R2D(self.angles[0]))
         self.timeLogs  = np.append(self.timeLogs, self.Time)
-        self.posLogs = np.vstack((self.posLogs, self.r.flatten()))
+        self.angleLogs = np.vstack((self.angleLogs, np.array([R2D(self.angles[0][0]),R2D(self.angles[1][0]) ,R2D(self.angles[2][0])])))
+        self.posLogs   = np.vstack((self.posLogs, self.r.flatten()))
+        self.ULogs     = np.vstack((self.ULogs, self.U.flatten()))
 
     def attitudeController(self):
         #Getting the measurement first
@@ -189,7 +191,7 @@ class quadcopter:
         self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
 
         # Anti Windup
-        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u2_max)
+        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
         self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
         self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
         self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
@@ -227,7 +229,7 @@ class quadcopter:
         # Feedback Linearization Start
         ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.4, 0.0, -0.2]))
         uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.4, 0.0,-0.2]))
-        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-5, -0.0,-1.5]))
+        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-0.6, -0.0,-0.5]))
 
         # Control to Desired Angle Conversion
         # ux, uy, uz equals to double derivative of the error itself
