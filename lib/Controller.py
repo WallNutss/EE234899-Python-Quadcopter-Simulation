@@ -17,7 +17,9 @@ def PID(Ts, err, err_prev, err_sum, gains):
     """
     return (gains[0] * err) + (err_sum * gains[1]) + (gains[2] * (err - err_prev)/Ts)
 
-def SMC():
+def SMC(states, dstates):
+    # Start defining the sliding surface
+    Sliding = 2
     pass
 
 def antiWindup(x, x_min, x_max):

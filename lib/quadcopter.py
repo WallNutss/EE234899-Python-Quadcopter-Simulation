@@ -6,6 +6,9 @@ import keyboard
 # Import Controller
 from lib.controller import PID, antiWindup
 
+# Import Turbulance Wind
+from windModel.dydrenwind import DydrenWind
+
 class quadcopter:
     def __init__(self, Ts = 1.0/50.0):
         # Tello Params
@@ -97,6 +100,11 @@ class quadcopter:
         self.posLogs   = np.array([0.0, 0.0, 0.0])
         self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
 
+        # Wind Turbulance for Uncentainties
+        self.wind = DydrenWind().Model()
+        self.iter = 0
+        self.PID = True
+
     def DynamicSolver(self):
         """
         Perform a calculation based on Quadcopter Dynamic Mathematical Model
@@ -112,8 +120,16 @@ class quadcopter:
         bRe = RPY2XYZ(self.state[6:9])
         R   = bRe.transpose()
         
-        # Derivative State 1 to 3, the velocity, because past state define the future state
-        self.dstate[0:3] = self.state[3:6]
+        # Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
+        if self.Time > 10:
+            try:
+                self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+            except:
+                self.dstate[0:3] = self.state[3:6]
+            #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
+        else:
+            self.dstate[0:3] = self.state[3:6]
+        
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
@@ -146,6 +162,7 @@ class quadcopter:
         Return
             Position 
         """
+        self.iter = self.iter + 1
         # Updating Simulation time
         self.Time = self.Time + self.Ts
         
@@ -157,6 +174,19 @@ class quadcopter:
         # Update and Assigning Each Invidual State to Duplicate Variable
         # Position {EF}
         self.r      = self.state[0:3]
+        # Put the wind turbulance disturbance here if you want
+        #if self.Time > 3:
+            #print("OK")
+            #print(self.state[3:6])
+            #self.dr = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+            #self.state[3:6] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+            #self.state[3:6] = self.state[3:6] + np.array([0.2, 0.2, 0]).reshape(3,1)
+            #self.dr     = self.state[3:6]
+            #print("OK")
+            #print(self.dr)
+            #print("END")
+            #self.iter = self.iter + 1
+        #else:
         self.dr     = self.state[3:6]
         # Orientation
         self.angles = self.state[6:9]
@@ -183,10 +213,18 @@ class quadcopter:
         self.theta_err = self.theta_des - theta
         self.psi_err = self.psi_des - psi
 
+        # Defining Control Equation for SMC Controller
+        # U2_Equation
+        # U3_Equation
+        # U4_Equation
+
+        # Call SMC Controller
+        # Self.U[2] = SMC(U2_Equation, self.states, self.dstates)
+
         # U2
         self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([0.3, 0.02, 0.2]))
         # U3
-        self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([0.8, 0.03, 0.3]))
+        self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([0.4, 0.03, 0.3]))
         # U4
         self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
 
@@ -227,8 +265,8 @@ class quadcopter:
         self.z_err = self.z_des - z_pos
 
         # Feedback Linearization Start
-        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.4, 0.0, -0.2]))
-        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.4, 0.0,-0.2]))
+        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.6, 0.0, -0.2]))
+        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.6, 0.0,-0.2]))
         uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-0.6, -0.0,-0.5]))
 
         # Control to Desired Angle Conversion
@@ -249,10 +287,11 @@ class quadcopter:
                             ((-uy*sin(self.state[8]))/(-uz+self.g)))
         
         # Anti Windup
-        self.phi_des = antiWindup(self.phi_des, D2R(-60), D2R(60))
-        self.theta_des = antiWindup(self.theta_des, D2R(-60), D2R(60))
+        self.phi_des = antiWindup(self.phi_des, D2R(-45), D2R(45))
+        self.theta_des = antiWindup(self.theta_des, D2R(-45), D2R(45))
 
         self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
+        # self.U[0] = (self.m * (-uz + self.g)) --> LOL, this algorith is also working. At this point Idk what is right and what is wrong anymore
 
         # Updating Error Value
         self.x_err_prev = self.x_err

@@ -28,26 +28,6 @@ ax = fig.add_subplot(111, projection='3d')
 state_display = ax.text2D(0.17, 0.90, "green" ,color='green', transform=ax.transAxes)
 time_display = ax.text2D(0.17, 0.85, "red" ,color='red', transform=ax.transAxes)
 
-# Create a another figure for angle
-fig2, ax2 = plt.subplots(3,1)
-xLogs, = ax2[0].plot([],[],'g', lw=2)
-ax2[0].set_xlim(0, 10)
-ax2[0].set_ylim(-5, 5)
-ax2[0].set_xlabel('X [m]')
-ax2[0].set_ylabel('Y [m]')
-
-yLogs, = ax2[1].plot([],[], 'r', lw=2)
-ax2[1].set_xlim(0, 10)
-ax2[1].set_ylim(-5, 5)
-ax2[1].set_xlabel('X [m]')
-ax2[1].set_ylabel('Y [m]')
-
-zLogs, = ax2[2].plot([],[], 'm',lw=2)
-ax2[2].set_xlim(0, 10)
-ax2[2].set_ylim(0, 5)
-ax2[2].set_xlabel('X [m]')
-ax2[2].set_ylabel('Y [m]')
-
 # Rotation Matrix, when Phi=Psi==0, Theta=20, In X Configuration shape, + sign mean that the drone will move backward, event though I dont know which forward or backward when in simulation. If academia cares about my undergraduate thesis, they should pay attention more to the student who is strugling, which in case they didn't yeah so fuck it its really long comment btw, wanna hang out?
 angles = np.array([D2R(0), D2R(0), D2R(0)])
 R = RPY2XYZ(angles).transpose()
@@ -95,8 +75,8 @@ ax.yaxis.set_major_locator(MultipleLocator(5))
 ax.zaxis.set_major_locator(MultipleLocator(1))
 
 # Set plot limits
-ax.set_xlim(-5, 5)
-ax.set_ylim(-5, 5)
+ax.set_xlim(-1, 1)
+ax.set_ylim(-1.5, 1)
 ax.set_zlim(0, 5)
 
 phi_ref     = D2R(0)
@@ -105,18 +85,85 @@ psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
-x_des       = 4.2
-y_des       = 5.1
-z_des       = 3.3
+x_des       = 0.8
+y_des       = -0.9
+z_des       = 2.3
 
-PositionRef = np.array([x_des, y_des, z_des])
+#PositionRef = np.array([x_des, y_des, z_des])
 # Random Position
-#PositionRef = np.array([np.random.uniform(-5,5), np.random.uniform(-5,5),np.random.uniform(0.3,0.5)])
+PositionRef = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1),np.random.uniform(2,5)])
 
-# ax.plot(np.array([0.0, PositionRef[0]]),np.array([0.0, PositionRef[1]]),np.array([0.0, PositionRef[2]]), '--r')
 ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro', markersize='3')
-# ax2[0].plot(Quadcopter.timeLogs[:], Quadcopter.angleLogs[:,0])
 
+# Create a another figure for pos and thrust
+fig2, ax2 = plt.subplots(3,1)
+xLogs, = ax2[0].plot([],[],'g', lw=2, label="Position x-axis [m]")
+ax2[0].set_xlim(0, 100)
+ax2[0].set_ylim(-1, 1)
+ax2[0].set_xlabel('Time(s)')
+ax2[0].set_ylabel('X(m)')
+ax2[0].legend()
+x = np.arange(0, 100.2, 0.02)
+y = np.full_like(x, PositionRef[0])
+ax2[0].plot(x,y, '--r')
+ax2[0].grid()
+
+yLogs, = ax2[1].plot([],[], 'r', lw=2, label="Position y-axis [m]")
+ax2[1].set_xlim(0, 100)
+ax2[1].set_ylim(-1, 1)
+ax2[1].set_xlabel('Time(s)')
+ax2[1].set_ylabel('Y(m)')
+ax2[1].legend()
+x = np.arange(0, 100.2, 0.02)
+y = np.full_like(x, PositionRef[1])
+ax2[1].plot(x,y, '--r')
+ax2[1].grid()
+
+zLogs, = ax2[2].plot([],[], 'm',lw=2, label="Position z-axis [m]")
+ax2[2].set_xlim(0, 100)
+ax2[2].set_ylim(3, 5)
+ax2[2].set_xlabel('Time(s)')
+ax2[2].set_ylabel('Z(m)')
+ax2[2].legend()
+x = np.arange(0, 100.2, 0.02)
+y = np.full_like(x, PositionRef[2])
+ax2[2].plot(x,y, '--r')
+ax2[2].grid()
+
+
+# Thrust
+fig3, ax3 = plt.subplots(4,1)
+U1Logs, = ax3[0].plot([],[],'g', lw=2, label="U1 [N]")
+ax3[0].set_xlim(0, 50)
+ax3[0].set_ylim(0, 12)
+ax3[0].set_xlabel('Time(s)')
+ax3[0].set_ylabel('Force(N)')
+ax3[0].legend()
+ax3[0].grid()
+
+U2Logs, = ax3[1].plot([],[], 'r', lw=2, label="U2 [Nm]")
+ax3[1].set_xlim(0, 50)
+ax3[1].set_ylim(-3, 3)
+ax3[1].set_xlabel('Time(s)')
+ax3[1].set_ylabel('Torque(Nm)')
+ax3[1].legend()
+ax3[1].grid()
+
+U3Logs, = ax3[2].plot([],[], 'm',lw=2, label="U3 [Nm]")
+ax3[2].set_xlim(0, 50)
+ax3[2].set_ylim(-3, 3)
+ax3[2].set_xlabel('Time(s)')
+ax3[2].set_ylabel('Torque(Nm)')
+ax3[2].legend()
+ax3[2].grid()
+
+U4Logs, = ax3[3].plot([],[], 'm',lw=2, label="U4 [Nm]")
+ax3[3].set_xlim(0, 50)
+ax3[3].set_ylim(-1, 1)
+ax3[3].set_xlabel('Time(s)')
+ax3[3].set_ylabel('Torque(Nm)')
+ax3[3].legend()
+ax3[3].grid()
 # ------------- Start Simulation ------------- #
 def update_point(n):
     """
@@ -128,14 +175,15 @@ def update_point(n):
     """
     
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
-    Quadcopter.DynamicSolver()
+    #Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
     Quadcopter.psi_des = antiWindup(math.atan2( Quadcopter.state[1] - PositionRef[1], Quadcopter.state[0]- PositionRef[0]), -0.99, 0.99)
     # Quadcopter for Position Controller, Where Outer Loop will
     Quadcopter.positionController(PositionRef)
 
-    innerLoop = 4
-    for i in range(0, innerLoop): 
+    innerLoop = 3
+    for i in range(0, innerLoop):
+        Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
         Quadcopter.attitudeController()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
@@ -181,19 +229,24 @@ def update_point(n):
 
         # Add some info about current position in plot
         time_display.set_text('Simulation time = %.2fs' % (Quadcopter.Time))
-        state_display.set_text('Position of the quad: \n x = %.1fm y = %.1fm z = %.1fm' % (states[0], states[1], states[2]))
+        state_display.set_text('Position of the quad: \nx = %.1fm y = %.1fm z = %.1fm' % (states[0], states[1], states[2]))
 
         #Comment this line if you don't require the trail that is left behind the quadrotor
         #ax.scatter(states[0], states[1], states[2], "g.")
-        #Logs Angle Data
-        #print(Quadcopter.posLogs[:,0])
+
+        #Logs Data
         xLogs.set_data(Quadcopter.timeLogs, Quadcopter.posLogs[:,0].flatten())
         yLogs.set_data(Quadcopter.timeLogs, Quadcopter.posLogs[:,1])
         zLogs.set_data(Quadcopter.timeLogs, Quadcopter.posLogs[:,2])
 
+        U1Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,0].flatten())
+        U2Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,1].flatten())
+        U3Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,2].flatten())
+        U4Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,3].flatten())
 
-    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs
+
+    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs
   
-ani = animation.FuncAnimation(fig, update_point, interval=50, blit=True)
-#plt.grid()
+ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True)
+
 plt.show()
