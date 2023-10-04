@@ -193,8 +193,8 @@ def update_point(n):
     for i in range(0, innerLoop):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
-        Quadcopter.attitudeController()
-        #Quadcopter.attitudeSMCController()
+        #Quadcopter.attitudeController()
+        Quadcopter.attitudeSMCController()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
 
@@ -262,4 +262,7 @@ def update_point(n):
   
 ani = animation.FuncAnimation(fig, update_point, interval=40, blit=True)
 
+
 plt.show()
+
+#if (ani)

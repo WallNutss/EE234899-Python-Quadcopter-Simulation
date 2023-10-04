@@ -106,9 +106,9 @@ class quadcopter:
         self.PID = True
 
         # For Sliding Mode Control
-        self.lamda = np.array([  0.44,      0,    0, \
-                                 0,      0.44,    0, \
-                                 0,      0,    0.44]).reshape(3,3)
+        self.lamda = np.array([  0.14,      0,    0, \
+                                 0,      0.14,    0, \
+                                 0,      0,    0.04]).reshape(3,3)
     def DynamicSolver(self):
         """
         Perform a calculation based on Quadcopter Dynamic Mathematical Model
@@ -147,7 +147,7 @@ class quadcopter:
         Iw = np.dot(self.Inert, self.state[9:12])
         self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M -\
                                                                  np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1) +\
-                                                                 np.array([self.kad * (self.dstate[6])**2, self.kad * (self.dstate[7])**2, self.kad * (self.dstate[8])**2]).reshape(3,1)))
+                                                                 np.array([self.kad * (self.dstate[6]), self.kad * (self.dstate[7]), self.kad * (self.dstate[8])]).reshape(3,1)))
 
         # Immediately Integral of dstate[3:6] which is the result of acceleration in Integral Frame to get Velocity also in {EF}
         # self.dstate[0:3] = self.dstate[0:3] + self.dstate[3:6] * self.Ts
@@ -182,6 +182,8 @@ class quadcopter:
         # Orientation
         self.angles = self.state[6:9]
         self.w      = self.state[9:12]
+
+        print('Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°' % (R2D(self.state[6]), R2D(self.state[7]), R2D(self.state[8])))
 
         # Logs & History
         self.timeLogs  = np.append(self.timeLogs, self.Time)
@@ -255,8 +257,8 @@ class quadcopter:
         # Control to Desired Angle Conversion
         # ux, uy, uz equals to double derivative of the error itself
         # Desired Phi
-        a = (-ux)/(-uz + self.g)
-        b = (-uy)/(-uz + self.g)
+        a = (ux)/(uz + self.g)
+        b = (uy)/(uz + self.g)
         c = cos(self.psi_des)
         d = sin(self.psi_des)
 
@@ -269,14 +271,15 @@ class quadcopter:
             self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
         
         #Desired Theta
-        self.theta_des =  atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
-                            ((-uy*sin(self.state[8]))/(-uz+self.g)))
+        self.theta_des = atan(a*c + b*d)
+        #self.theta_des =  atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
+        #                    ((-uy*sin(self.state[8]))/(-uz+self.g)))
         
         # Anti Windup
         self.phi_des = antiWindup(self.phi_des, D2R(-45), D2R(45))
         self.theta_des = antiWindup(self.theta_des, D2R(-45), D2R(45))
 
-        self.U[0] = (self.m * (uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
+        self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
         # self.U[0] = (self.m * (-uz + self.g)) --> LOL, this algorithm is also working. At this point Idk what is right and what is wrong anymore
 
         # Updating Error Value

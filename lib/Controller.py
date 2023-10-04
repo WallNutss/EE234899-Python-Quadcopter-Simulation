@@ -3,7 +3,7 @@ import math
 
 def sat(v):
     v = np.copy(v)
-    v[np.abs(v) > 0.5] = np.sign(v[np.abs(v) > 0.5])
+    v[np.abs(v) > 0.25] = np.sign(v[np.abs(v) > 0.25])
     return v
 
 def PID(Ts, err, err_prev, err_sum, gains):
@@ -22,8 +22,8 @@ def PID(Ts, err, err_prev, err_sum, gains):
     return (gains[0] * err) + (err_sum * gains[1]) + (gains[2] * (err - err_prev)/Ts)
 
 def SMC(sliding, inert, anglevelocity, lamda, prevAngle):
-    K = np.array([0.29,      0,    0, \
-                    0,    0.29,    0, \
+    K = np.array([0.19,      0,    0, \
+                    0,    0.19,    0, \
                     0,      0,  0.01]).reshape(3,3)
     # Let him cook
     inert_inv = np.linalg.inv(inert)
