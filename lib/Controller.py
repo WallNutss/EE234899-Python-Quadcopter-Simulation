@@ -1,6 +1,10 @@
 import numpy as np
 import math
 
+def sat(v):
+    v = np.copy(v)
+    v[np.abs(v) > 0.5] = np.sign(v[np.abs(v) > 0.5])
+    return v
 
 def PID(Ts, err, err_prev, err_sum, gains):
     """
@@ -17,10 +21,30 @@ def PID(Ts, err, err_prev, err_sum, gains):
     """
     return (gains[0] * err) + (err_sum * gains[1]) + (gains[2] * (err - err_prev)/Ts)
 
-def SMC(states, dstates):
-    # Start defining the sliding surface
-    Sliding = 2
-    pass
+def SMC(sliding, inert, anglevelocity, lamda, prevAngle):
+    K = np.array([0.29,      0,    0, \
+                    0,    0.29,    0, \
+                    0,      0,  0.01]).reshape(3,3)
+    # Let him cook
+    inert_inv = np.linalg.inv(inert)
+
+    # Part A, the Control Equation for attitude
+    Iw   = np.dot(inert, anglevelocity) # For the I.[p,q,r]
+    Invw = np.dot(inert_inv, anglevelocity) # For the I^-1.[p,q,r]
+
+    Inertia_F = np.cross(Invw[:,0], Iw[:,0]).reshape(3,1)
+    U_eq = inert.dot(Inertia_F - inert_inv.dot(0.004609 * anglevelocity) - lamda.dot(anglevelocity))
+    #U_eq = inert.dot(Inertia_F - lamda.dot(anglevelocity))
+
+    sliding[0] = sat(sliding[0])
+    sliding[1] = sat(sliding[0])
+    sliding[2] = sat(sliding[0])
+
+    U_SMC = U_eq - K.dot(sliding)
+
+    print(U_SMC)
+    print("-------------------------")
+    return U_SMC
 
 def antiWindup(x, x_min, x_max):
     """

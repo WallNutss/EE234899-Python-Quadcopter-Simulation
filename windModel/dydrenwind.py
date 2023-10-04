@@ -81,42 +81,42 @@ class DydrenWind:
 
 
 
-dydren = DydrenWind()
-wind = dydren.Model()
-# print(wind[1,:])
-#ans = np.hstack((y1_f,y2_f,y3_f))
-y1_f = wind[:,0].flatten()
-y2_f = wind[:,1].flatten()
-y3_f = wind[:,2].flatten()
-#print(ans)
+# dydren = DydrenWind()
+# wind = dydren.Model()
+# # print(wind[1,:])
+# #ans = np.hstack((y1_f,y2_f,y3_f))
+# y1_f = wind[:,0].flatten()
+# y2_f = wind[:,1].flatten()
+# y3_f = wind[:,2].flatten()
+# #print(ans)
 
-#plots for along-wind velocities generated using Python
-plt.figure(1)
+# #plots for along-wind velocities generated using Python
+# plt.figure(1)
 
-# t_p = time(s)
-plt.plot(dydren.timesamples, y1_f, 'b')
-# plt.plot(t_w, y1_f, 'b')
-plt.ylabel('along-wind in m/s (P)')
-plt.xlabel('time in seconds')
-plt.grid(True)
+# # t_p = time(s)
+# plt.plot(dydren.timesamples, y1_f, 'b')
+# # plt.plot(t_w, y1_f, 'b')
+# plt.ylabel('along-wind in m/s (P)')
+# plt.xlabel('time in seconds')
+# plt.grid(True)
 
-#plots for cross-wind velocities generated using Python
-plt.figure(2)
+# #plots for cross-wind velocities generated using Python
+# plt.figure(2)
 
-plt.plot(dydren.timesamples, y2_f, 'r')
-# plt.plot(t_w, y2_f, 'r')
-plt.ylabel('cross-wind in m/s (P)')
-plt.xlabel('time in seconds')
-plt.grid(True)
+# plt.plot(dydren.timesamples, y2_f, 'r')
+# # plt.plot(t_w, y2_f, 'r')
+# plt.ylabel('cross-wind in m/s (P)')
+# plt.xlabel('time in seconds')
+# plt.grid(True)
 
-#plots for vertical-wind velocities generated using Python
-plt.figure(3)
+# #plots for vertical-wind velocities generated using Python
+# plt.figure(3)
 
-plt.plot(dydren.timesamples, y3_f, 'g')
-# plt.plot(t_w, y3_f, 'g')
-plt.ylabel('vertical-wind in m/s (P)')
-plt.xlabel('time in seconds')
-plt.grid(True)
+# plt.plot(dydren.timesamples, y3_f, 'g')
+# # plt.plot(t_w, y3_f, 'g')
+# plt.ylabel('vertical-wind in m/s (P)')
+# plt.xlabel('time in seconds')
+# plt.grid(True)
 
-# Show all plots
-plt.show()
+# # Show all plots
+# plt.show()

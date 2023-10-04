@@ -78,6 +78,9 @@ ax.zaxis.set_major_locator(MultipleLocator(1))
 ax.set_xlim(-1, 1)
 ax.set_ylim(-1.5, 1)
 ax.set_zlim(0, 5)
+# ax.set_xlim(-50, 50)
+# ax.set_ylim(-50, 50)
+# ax.set_zlim(0, 10)
 
 phi_ref     = D2R(0)
 theta_ref   = D2R(0)
@@ -87,13 +90,14 @@ AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
 x_des       = 0.8
 y_des       = -0.9
-z_des       = 2.3
+z_des       = 4.3
 
-#PositionRef = np.array([x_des, y_des, z_des])
+PositionRef = np.array([x_des, y_des, z_des])
 # Random Position
-PositionRef = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1),np.random.uniform(2,5)])
+#PositionRef = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1),np.random.uniform(2,5)])
 
-ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro', markersize='3')
+#Ref, = ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro', markersize='3')
+Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2])
 
 # Create a another figure for pos and thrust
 fig2, ax2 = plt.subplots(3,1)
@@ -173,11 +177,15 @@ def update_point(n):
     Return
         Line of the figure contain position
     """
-    
+    # Interesting moving target?
+    #PositionRef[0] = PositionRef[0] + 0.002
+    #PositionRef[1] = PositionRef[1] + 0.002
+
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
-    #Quadcopter.DynamicSolver()
+    Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
-    Quadcopter.psi_des = antiWindup(math.atan2( Quadcopter.state[1] - PositionRef[1], Quadcopter.state[0]- PositionRef[0]), -0.99, 0.99)
+    #Quadcopter.psi_des = antiWindup(math.atan2(PositionRef[1] - Quadcopter.state[1], PositionRef[0] - Quadcopter.state[0]), -0.99, 0.99)
+    Quadcopter.psi_des = 0
     # Quadcopter for Position Controller, Where Outer Loop will
     Quadcopter.positionController(PositionRef)
 
@@ -186,6 +194,7 @@ def update_point(n):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
         Quadcopter.attitudeController()
+        #Quadcopter.attitudeSMCController()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
 
@@ -219,6 +228,10 @@ def update_point(n):
         y3 = np.array([lineofsight[1,0], lineofsight[1,1]])
         z3 = np.array([lineofsight[2,0], lineofsight[2,1]])
 
+        # Intersting Idea, Moving Target
+        #Ref._offsets3d = (PositionRef[0], PositionRef[1],PositionRef[2])
+        #Ref.set_3d_properties(PositionRef[2])
+
         motor13.set_data(x1,y1)
         motor24.set_data(x2,y2)
         los.set_data(x3,y3)
@@ -245,8 +258,8 @@ def update_point(n):
         U4Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,3].flatten())
 
 
-    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs
+    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref
   
-ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True)
+ani = animation.FuncAnimation(fig, update_point, interval=40, blit=True)
 
 plt.show()
