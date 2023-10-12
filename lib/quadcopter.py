@@ -4,7 +4,7 @@ from lib.rotation import RPY2XYZ, SpecialR, D2R, R2D
 import keyboard
 
 # Import Controller
-from lib.controller import PID, antiWindup, SMC
+from lib.controller import PID, antiWindup, SMC, LQR
 
 # Import Turbulance Wind
 from windModel.dydrenwind import DydrenWind
@@ -29,7 +29,9 @@ class quadcopter:
 
         # Motor Params (Speed, rpm, etc)
         self.max_motor_speed = 2200.0   # rpm , max motor speed rotation per minute
-        self.min_motor_speed = 0.0      # rpm , min motor speed rotation per minute
+        self.min_motor_speed = 0
+        
+        .0      # rpm , min motor speed rotation per minute
         self.u1_max          = 19.57   # N
         self.u1_min          = 0.0      # N
         self.u2_max          = 2.32     # Nm
@@ -106,9 +108,8 @@ class quadcopter:
         self.PID = True
 
         # For Sliding Mode Control
-        self.lamda = np.array([  0.14,      0,    0, \
-                                 0,      0.14,    0, \
-                                 0,      0,    0.04]).reshape(3,3)
+        self.lamda = []
+
     def DynamicSolver(self):
         """
         Perform a calculation based on Quadcopter Dynamic Mathematical Model
@@ -173,7 +174,7 @@ class quadcopter:
         # Calling for dynamic mathematical model calculation    
         self.DynamicSolver()
 
-        # Integration from derivative state so we can get Original State // Dead Reckoning
+        # Integration from derivative state so we can get Original State // Dead Reckoning // Euler Integration Method Look it up
         self.state  = self.state + (self.dstate * self.Ts)
         # Update and Assigning Each Invidual State to Duplicate Variable
         # Position {EF}
@@ -191,48 +192,6 @@ class quadcopter:
         self.posLogs   = np.vstack((self.posLogs, self.r.flatten()))
         self.ULogs     = np.vstack((self.ULogs, self.U.flatten()))
 
-    def attitudeController(self):
-        #Getting the measurement first
-        phi = self.state[6]
-        theta = self.state[7]
-        psi = self.state[8]
-
-        #self.phi_des = Reference[0]
-        #self.theta_des = Reference[1]
-        #self.psi_des = Reference[2]
-
-        # Getting the error from reference - measurement
-        self.phi_err = self.phi_des - phi
-        self.theta_err = self.theta_des - theta
-        self.psi_err = self.psi_des - psi
-
-        # U2
-        self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([0.3, 0.02, 0.2]))
-        # U3
-        self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([0.4, 0.03, 0.3]))
-        # U4
-        self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([0.2, 0.01, 0.4]))
-
-        # Anti Windup
-        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
-        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
-        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
-        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
-        
-        # Updating Error Value
-        self.phi_err_prev = self.phi_err
-        self.phi_err_sum = self.phi_err_sum + self.phi_err
-
-        self.theta_err_prev = self.theta_err
-        self.theta_err_sum = self.theta_err_sum + self.theta_err
-
-        self.psi_err_prev = self.psi_err
-        self.psi_err_sum = self.psi_err_sum + self.psi_err   
-
-        # Updating Control Blocks
-        self.Thrust = self.U[0]
-        self.M = self.U[1:4]
-
     def positionController(self, Reference):
         #Getting the measurement first, this is on Inertial Frame {EF}
         x_pos = self.state[0]
@@ -249,7 +208,7 @@ class quadcopter:
         self.y_err = self.y_des - y_pos
         self.z_err = self.z_des - z_pos
 
-        # Feedback Linearization Start
+        # Feedback Linearization Start / Is this even Feedback Linearization lmao
         ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.6, 0.0, -0.2]))
         uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.6, 0.0,-0.2]))
         uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-0.6, 0.0,-0.5]))
@@ -291,8 +250,54 @@ class quadcopter:
 
         self.z_err_prev = self.z_err
         self.z_err_sum = self.z_err_sum + self.z_err  
+
+    def attitudeController(self):
+        #Getting the measurement first
+        phi = self.state[6]
+        theta = self.state[7]
+        psi = self.state[8]
+
+        #self.phi_des = Reference[0]
+        #self.theta_des = Reference[1]
+        #self.psi_des = Reference[2]
+
+        # Getting the error from reference - measurement
+        self.phi_err = self.phi_des - phi
+        self.theta_err = self.theta_des - theta
+        self.psi_err = self.psi_des - psi
+
+        # U2
+        self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.2]))
+        # U3
+        self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.4, 0.03, 0.3]))
+        # U4
+        self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.2, 0.01, 0.4]))
+
+        # Anti Windup
+        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
+        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
+        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
+        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
         
+        # Updating Error Value
+        self.phi_err_prev = self.phi_err
+        self.phi_err_sum = self.phi_err_sum + self.phi_err
+
+        self.theta_err_prev = self.theta_err
+        self.theta_err_sum = self.theta_err_sum + self.theta_err
+
+        self.psi_err_prev = self.psi_err
+        self.psi_err_sum = self.psi_err_sum + self.psi_err   
+
+        # Updating Control Blocks
+        self.Thrust = self.U[0]
+        self.M = self.U[1:4]
+
+
     def attitudeSMCController(self):
+        self.lamda = np.array([  0.14,      0,    0, \
+                                 0,      0.14,    0, \
+                                 0,      0,    0.14]).reshape(3,3)
         #Getting the measurement first
         phi = self.state[6]
         theta = self.state[7]
@@ -303,17 +308,18 @@ class quadcopter:
         self.theta_err = self.theta_des - theta
         self.psi_err = self.psi_des - psi
 
+        # Combining them in one array
         angle_error = np.array([self.phi_err, self.theta_err, self.psi_err]).reshape(3,1)
-        prev_angle_error = np.array([(self.phi_err - self.phi_err_prev)/self.Ts, (self.theta_err - self.theta_err_prev)/self.Ts, (self.psi_err - self.psi_err_prev)/self.Ts]).reshape(3,1)
+        angle_error_dot = np.array([(self.phi_err - self.phi_err_prev)/self.Ts, (self.theta_err - self.theta_err_prev)/self.Ts, (self.psi_err - self.psi_err_prev)/self.Ts]).reshape(3,1)
         
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame)
-        EFAngle_Velo = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
+        angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
 
-        # Getting Ready for Sliding Surface
-        slidingsurface = EFAngle_Velo + self.lamda.dot(angle_error)
+        # Calculation for Sliding Surface
+        slidingsurface = angle_error_dot + self.lamda.dot(angle_error)
 
         # Defining Control Equation for SMC Controller
-        control = SMC(slidingsurface, self.Inert, self.state[9:12], self.lamda, prev_angle_error)
+        control = SMC(slidingsurface, self.Inert, angles_dot, self.lamda, angle_error_dot)
 
         # U2_Equation
         self.U[1] = control[0]
@@ -337,5 +343,43 @@ class quadcopter:
         self.Thrust = self.U[0]
         self.M = self.U[1:4]
 
+    def attitudeLQRController(self):
+        #Getting the measurement first
+        phi = self.state[6]
+        theta = self.state[7]
+        psi = self.state[8]
 
+        # Getting the error from reference - measurement
+        self.phi_err = self.phi_des - phi
+        self.theta_err = self.theta_des - theta
+        self.psi_err = self.psi_des - psi
+
+        angle_error = np.array([self.phi_err, self.theta_err, self.psi_err]).reshape(3,1)
+
+        K = LQR()
+        # K here if correct by matemathically returns a 3x6 matrixs for 𝜑,𝜃,𝜓 p,q,r. I dont really needed the p,q,r, so I just should just take the euler angle gains
+        gains = K[:,0:3]
+        U = gains*angle_error
+
+        # U2_Equation
+        self.U[1] = U[0]
+        # U3_Equation
+        self.U[2] = U[1]
+        # U4_Equation
+        self.U[3] = U[2]
+
+        # Anti Windup
+        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
+        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
+        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
+        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
+        
+        # Updating Error Value
+        self.phi_err_prev = self.phi_err
+        self.theta_err_prev = self.theta_err
+        self.psi_err_prev = self.psi_err
+
+        # Updating Control Blocks
+        self.Thrust = self.U[0]
+        self.M = self.U[1:4]
         

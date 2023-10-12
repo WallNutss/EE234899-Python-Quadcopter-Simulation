@@ -75,7 +75,7 @@ ax.yaxis.set_major_locator(MultipleLocator(5))
 ax.zaxis.set_major_locator(MultipleLocator(1))
 
 # Set plot limits
-ax.set_xlim(-1, 1)
+ax.set_xlim(-1.5, 1)
 ax.set_ylim(-1.5, 1)
 ax.set_zlim(0, 5)
 # ax.set_xlim(-50, 50)
@@ -88,8 +88,8 @@ psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
-x_des       = 0.8
-y_des       = -0.9
+x_des       = -0.8
+y_des       = -0.8
 z_des       = 4.3
 
 PositionRef = np.array([x_des, y_des, z_des])
@@ -103,7 +103,7 @@ Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2])
 fig2, ax2 = plt.subplots(3,1)
 xLogs, = ax2[0].plot([],[],'g', lw=2, label="Position x-axis [m]")
 ax2[0].set_xlim(0, 100)
-ax2[0].set_ylim(-1, 1)
+ax2[0].set_ylim(-2, 2)
 ax2[0].set_xlabel('Time(s)')
 ax2[0].set_ylabel('X(m)')
 ax2[0].legend()
@@ -114,7 +114,7 @@ ax2[0].grid()
 
 yLogs, = ax2[1].plot([],[], 'r', lw=2, label="Position y-axis [m]")
 ax2[1].set_xlim(0, 100)
-ax2[1].set_ylim(-1, 1)
+ax2[1].set_ylim(-2, 2)
 ax2[1].set_xlabel('Time(s)')
 ax2[1].set_ylabel('Y(m)')
 ax2[1].legend()
@@ -134,6 +134,7 @@ y = np.full_like(x, PositionRef[2])
 ax2[2].plot(x,y, '--r')
 ax2[2].grid()
 
+fig2.suptitle("Quadcopter Position(m)")
 
 # Thrust
 fig3, ax3 = plt.subplots(4,1)
@@ -168,6 +169,36 @@ ax3[3].set_xlabel('Time(s)')
 ax3[3].set_ylabel('Torque(Nm)')
 ax3[3].legend()
 ax3[3].grid()
+
+fig3.suptitle("Input Thrust Vector")
+
+# Create a another figure for Angle Visualization
+fig4, ax4 = plt.subplots(3,1)
+phiLogs, = ax4[0].plot([],[],'g', lw=2, label="Phi(degree)")
+ax4[0].set_xlim(0, 100)
+ax4[0].set_ylim(-45, 45)
+ax4[0].set_xlabel('Time(s)')
+ax4[0].set_ylabel('Phi(degree)')
+ax4[0].legend()
+ax4[0].grid()
+
+thetaLogs, = ax4[1].plot([],[],'g', lw=2, label="Theta(degree)")
+ax4[1].set_xlim(0, 100)
+ax4[1].set_ylim(-45, 45)
+ax4[1].set_xlabel('Time(s)')
+ax4[1].set_ylabel('Theta(degree)')
+ax4[1].legend()
+ax4[1].grid()
+
+psiLogs, = ax4[2].plot([],[],'g', lw=2, label="Psi(degree)")
+ax4[2].set_xlim(0, 100)
+ax4[2].set_ylim(-15, 15)
+ax4[2].set_xlabel('Time(s)')
+ax4[2].set_ylabel('Psi(degree)')
+ax4[2].legend()
+ax4[2].grid()
+
+fig4.suptitle("Angles")
 # ------------- Start Simulation ------------- #
 def update_point(n):
     """
@@ -180,9 +211,21 @@ def update_point(n):
     # Interesting moving target?
     #PositionRef[0] = PositionRef[0] + 0.002
     #PositionRef[1] = PositionRef[1] + 0.002
+    # if Quadcopter.Time > 20:
+    #     PositionRef[0] = 0.8
+    #     PositionRef[1] = -0.8
+    #     PositionRef[2] = 3.5
+    # if Quadcopter.Time > 35:
+    #     PositionRef[0] = 0.8
+    #     PositionRef[1] = 0.8
+    #     PositionRef[2] = 3.5
+    # if Quadcopter.Time > 45:
+    #     PositionRef[0] = -0.8
+    #     PositionRef[1] = 0.8
+    #     PositionRef[2] = 3.5
 
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
-    Quadcopter.DynamicSolver()
+    #Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
     #Quadcopter.psi_des = antiWindup(math.atan2(PositionRef[1] - Quadcopter.state[1], PositionRef[0] - Quadcopter.state[0]), -0.99, 0.99)
     Quadcopter.psi_des = 0
@@ -195,6 +238,7 @@ def update_point(n):
         # Control the unit of the quadcopter
         #Quadcopter.attitudeController()
         Quadcopter.attitudeSMCController()
+        #Quadcopter.DynamicSolver()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
 
@@ -257,10 +301,14 @@ def update_point(n):
         U3Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,2].flatten())
         U4Logs.set_data(Quadcopter.timeLogs, Quadcopter.ULogs[:,3].flatten())
 
+        phiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,0].flatten())
+        thetaLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,1])
+        psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
-    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref
+
+    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=40, blit=True)
+ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True)
 
 
 plt.show()
