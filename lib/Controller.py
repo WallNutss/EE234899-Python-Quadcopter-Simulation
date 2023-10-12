@@ -48,9 +48,9 @@ def PID(Ts, err, err_prev, err_sum, gains):
 
 def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
     # Reference --> Tripathi(2015), Design of Sliding Mode and Backstepping Controllers for a Quadcopter, Kiriman Tuhan Ya Allah, sisa baikin sama ngertiin kinematika kok bisa working nih
-    K = np.array([0.7,      0,    0, \
-                   0,      0.7,    0, \
-                   0,      0,    0.7]).reshape(3,3)
+    K = np.array([0.4,      0,    0, \
+                   0,      0.4,    0, \
+                   0,      0,    0.4]).reshape(3,3)
     K_2 = np.array([0.8,      0,    0, \
                      0,      0.8,    0, \
                      0,      0,    0.8]).reshape(3,3)   

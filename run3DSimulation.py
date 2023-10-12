@@ -3,6 +3,9 @@ import math
 from matplotlib import pyplot as plt
 from matplotlib import animation
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
+import keyboard
+import os
+import pandas as pd
 
 # Importing class Quadcopter
 from lib.quadcopter import quadcopter
@@ -208,24 +211,28 @@ def update_point(n):
     Return
         Line of the figure contain position
     """
-    # Interesting moving target?
+    # Interesting moving target? Below there are 4 waypoints making 
     #PositionRef[0] = PositionRef[0] + 0.002
     #PositionRef[1] = PositionRef[1] + 0.002
-    # if Quadcopter.Time > 20:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = -0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 35:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = 0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 45:
-    #     PositionRef[0] = -0.8
-    #     PositionRef[1] = 0.8
-    #     PositionRef[2] = 3.5
+    if Quadcopter.Time > 20:
+        PositionRef[0] = 0.8
+        PositionRef[1] = -0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 35:
+        PositionRef[0] = 0.8
+        PositionRef[1] = 0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 45:
+        PositionRef[0] = -0.8
+        PositionRef[1] = 0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 55:
+        PositionRef[0] = -0.8
+        PositionRef[1] = -0.8
+        PositionRef[2] = 4.3
 
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
-    #Quadcopter.DynamicSolver()
+    Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
     #Quadcopter.psi_des = antiWindup(math.atan2(PositionRef[1] - Quadcopter.state[1], PositionRef[0] - Quadcopter.state[0]), -0.99, 0.99)
     Quadcopter.psi_des = 0
@@ -305,12 +312,15 @@ def update_point(n):
         thetaLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,1])
         psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
+    # TO close the simulation and extract the data
+    if keyboard.is_pressed('esc') or Quadcopter.Time == 100:
+        print("Simulation Done, Result Print")
+        ani.event_source.stop()
+        plt.close('all')
+        df = pd.DataFrame(Quadcopter.posLogs)
+        df.to_excel('./data/data.xlsx')
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True)
-
-
+ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True, repeat=True)
 plt.show()
-
-#if (ani)
