@@ -9,7 +9,7 @@ from lib.quadcopter import quadcopter
 # Importing rotation matrix
 from lib.rotation import RPY2XYZ, D2R, R2D
 # Import Anti Windup
-from lib.controller import antiWindup
+from lib.Controller import antiWindup
 
 # Body Frame Location for Transformation Matrix Preparation
             # Position Motor1  Motor2 Motor3  Motor4, MoC , LoS

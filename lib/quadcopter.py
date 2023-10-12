@@ -4,7 +4,7 @@ from lib.rotation import RPY2XYZ, SpecialR, D2R, R2D
 import keyboard
 
 # Import Controller
-from lib.controller import PID, antiWindup, SMC, LQR
+from lib.Controller import PID, antiWindup, SMC, LQR
 
 # Import Turbulance Wind
 from windModel.dydrenwind import DydrenWind
