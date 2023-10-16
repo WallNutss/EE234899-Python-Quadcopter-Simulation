@@ -3,7 +3,7 @@ import math
 
 def sat(v):
     v = np.copy(v)
-    v[np.abs(v) > 0.45] = np.sign(v[np.abs(v) > 0.45])
+    v[np.abs(v) > 0.25] = np.sign(v[np.abs(v) > 0.25])
     return v
 
 def PID(Ts, err, err_prev, err_sum, gains):
@@ -55,21 +55,42 @@ def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
                      0,      0.8,    0, \
                      0,      0,    0.8]).reshape(3,3)   
     a1 = (inertia[1][1] - inertia[2][2])/inertia[0][0]
+    #b1 = 1/inertia[0][0]
     b1 = 0.06/inertia[0][0]
 
     a2 = (inertia[2][2] - inertia[0][0])/inertia[1][1]
+    #b2 = 1/inertia[1][1]
     b2 = 0.06/inertia[1][1]
 
     a3 = (inertia[0][0] - inertia[1][1])/inertia[2][2]
+    #b3 = 1/inertia[2][2]
     b3 = 0.06/inertia[2][2]
 
     # Roll Control
-    U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    #U_2 = inertia[0][0]*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
     # Pitch Control
-    U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    #U_3 = inertia[1][1]*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
     # Yaw Control
-    U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    #U_4 = inertia[2][2]*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
 
+
+    '''
+    Messsage corner
+
+    Haha goblok, sekarang pas b1nya kubaikin sesuai dinamika punyaku, sekarang fungsi saturasinya yang nggak working, tapi signnya working
+    Hadeh
+
+    What's working
+    1. Saat u_switch = -Ksgn(s), bisa bekerja dengan baik jika b1,b2,b3 penyebutnya == 1 bukan l
+    2. Saat u_switch = -Ksat(s), bisa bekejra dengan baik jika b1,b2,b3 penyebutnya == l bukan 1
+
+    '''
     U_SMC = np.array([U_2,U_3,U_4]).reshape(3,1)
     return U_SMC
 

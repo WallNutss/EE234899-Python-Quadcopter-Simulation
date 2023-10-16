@@ -125,16 +125,16 @@ class quadcopter:
         bRe = RPY2XYZ(self.state[6:9])
         R   = bRe.transpose()
         
-        # Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
-        if self.Time > 10:
-            try:
-                self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
-            except:
-                self.dstate[0:3] = self.state[3:6]
-            #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
-        else:
-            self.dstate[0:3] = self.state[3:6]
-        #self.dstate[0:3] = self.state[3:6]
+        #Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
+        # if self.Time > 10:
+        #     try:
+        #         self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+        #     except:
+        #         self.dstate[0:3] = self.state[3:6]
+        #     #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
+        # else:
+        #     self.dstate[0:3] = self.state[3:6]
+        self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
