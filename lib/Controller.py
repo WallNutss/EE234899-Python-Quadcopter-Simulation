@@ -21,26 +21,27 @@ def PID(Ts, err, err_prev, err_sum, gains):
     """
     return (gains[0] * err) + (err_sum * gains[1]) + (gains[2] * (err - err_prev)/Ts)
 
-# def SMC(sliding, inert, anglevelocity, lamda, prevAngle):
+# def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
 #     K = np.array([0.19,      0,    0, \
 #                     0,    0.19,    0, \
-#                     0,      0,  0.01]).reshape(3,3)
+#                     0,      0,  0.19]).reshape(3,3)
 #     # Let him cook
-#     inert_inv = np.linalg.inv(inert)
+#     inert_inv = np.linalg.inv(inertia)
 
 #     # Part A, the Control Equation for attitude
-#     Iw   = np.dot(inert, anglevelocity) # For the I.[p,q,r]
-#     Invw = np.dot(inert_inv, anglevelocity) # For the I^-1.[p,q,r]
+#     Iw   = np.dot(inertia, angles_dot) # For the I.[p,q,r]
+#     Invw = np.dot(-inert_inv, angles_dot) # For the I^-1.[p,q,r]
 
 #     Inertia_F = np.cross(Invw[:,0], Iw[:,0]).reshape(3,1)
-#     U_eq = inert.dot(Inertia_F - inert_inv.dot(0.004609 * anglevelocity) - lamda.dot(anglevelocity))
+#     U_eq = Inertia_F  + lamda.dot(angle_error_dot)
 #     #U_eq = inert.dot(Inertia_F - lamda.dot(anglevelocity))
 
 #     sliding[0] = sat(sliding[0])
 #     sliding[1] = sat(sliding[1])
 #     sliding[2] = sat(sliding[2])
 
-#     U_SMC = U_eq - K.dot(sliding)
+#     u_smc = (U_eq - K.dot(sliding))
+#     U_SMC = inertia.dot(u_smc)
 
 #     print(U_SMC)
 #     print("-------------------------")
@@ -51,33 +52,38 @@ def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
     K = np.array([0.4,      0,    0, \
                    0,      0.4,    0, \
                    0,      0,    0.4]).reshape(3,3)
-    K_2 = np.array([0.8,      0,    0, \
-                     0,      0.8,    0, \
-                     0,      0,    0.8]).reshape(3,3)   
+    K_2 = np.array([0.6,      0,    0, \
+                     0,      0.6,    0, \
+                     0,      0,    0.6]).reshape(3,3)   
     a1 = (inertia[1][1] - inertia[2][2])/inertia[0][0]
     #b1 = 1/inertia[0][0]
     b1 = 0.06/inertia[0][0]
+    #b1 = inertia[0][0]/0.06
 
     a2 = (inertia[2][2] - inertia[0][0])/inertia[1][1]
     #b2 = 1/inertia[1][1]
     b2 = 0.06/inertia[1][1]
+    #b2 = inertia[1][1]/0.06
 
     a3 = (inertia[0][0] - inertia[1][1])/inertia[2][2]
     #b3 = 1/inertia[2][2]
-    b3 = 0.06/inertia[2][2]
-
+    b3 = 1/inertia[2][2]
+    #b3 = inertia[2][2]/0.06
     # Roll Control
     #U_2 = inertia[0][0]*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
-    U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
+    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
+    U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     # Pitch Control
     #U_3 = inertia[1][1]*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
-    U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
+    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
+    U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     # Yaw Control
     #U_4 = inertia[2][2]*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
-    U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
+    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
+    U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
 
 
     '''

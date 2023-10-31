@@ -338,5 +338,5 @@ def update_point(n):
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update_point, interval=1000, blit=True, repeat=True)
 plt.show()

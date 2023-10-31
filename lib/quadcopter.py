@@ -96,6 +96,15 @@ class quadcopter:
         self.y_err_sum = 0.0
         self.z_err_sum = 0.0
 
+        # For SMC
+        self.phi_des_prev = 0.0
+        self.theta_des_prev = 0.0
+        self.psi_des_prev = 0.0
+
+        self.phi_des_prev_dot = 0.0
+        self.theta_des_prev_dot = 0.0
+        self.psi_des_prev_dot = 0.0
+
         # For Logs Purpose
         self.timeLogs  = np.array([0.0])
         self.angleLogs = np.array([0.0, 0.0, 0.0])
@@ -126,15 +135,15 @@ class quadcopter:
         R   = bRe.transpose()
         
         #Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
-        # if self.Time > 10:
-        #     try:
-        #         self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
-        #     except:
-        #         self.dstate[0:3] = self.state[3:6]
-        #     #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
-        # else:
-        #     self.dstate[0:3] = self.state[3:6]
-        self.dstate[0:3] = self.state[3:6]
+        if self.Time > 10:
+            try:
+                self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+            except:
+                self.dstate[0:3] = self.state[3:6]
+            #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
+        else:
+            self.dstate[0:3] = self.state[3:6]
+        #self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
@@ -308,12 +317,19 @@ class quadcopter:
         self.theta_err = self.theta_des - theta
         self.psi_err = self.psi_des - psi
 
+        # Getting the derivative of desired (Will come back later for fixing)
+        angles_desired_dot = np.array([(self.phi_des - self.phi_des_prev)/self.Ts, (self.theta_des - self.theta_des_prev)/self.Ts, (self.psi_des - self.psi_des_prev)/self.Ts]).reshape(3,1)
+        angles_desired_doubledot = np.array([(angles_desired_dot[0][0] - self.phi_des_prev_dot)/self.Ts, 
+                                            (angles_desired_dot[1][0] - self.theta_des_prev_dot)/self.Ts, 
+                                            (angles_desired_dot[2][0] - self.psi_des_prev_dot)/self.Ts ]).reshape(3,1)
+        print(angles_desired_doubledot)
+
         # Combining them in one array
         angle_error = np.array([self.phi_err, self.theta_err, self.psi_err]).reshape(3,1)
         angle_error_dot = np.array([(self.phi_err - self.phi_err_prev)/self.Ts, (self.theta_err - self.theta_err_prev)/self.Ts, (self.psi_err - self.psi_err_prev)/self.Ts]).reshape(3,1)
         
-        # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame)
-        angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
+        # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame), this is angulare rates on Inertial Frame Perspective
+        angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
 
         # Calculation for Sliding Surface
         slidingsurface = angle_error_dot + self.lamda.dot(angle_error)
@@ -338,6 +354,15 @@ class quadcopter:
         self.phi_err_prev = self.phi_err
         self.theta_err_prev = self.theta_err
         self.psi_err_prev = self.psi_err
+
+        # Updating Error Desired Value
+        self.phi_des_prev = self.phi_des
+        self.theta_des_prev = self.theta_des
+        self.psi_des_prev = self.psi_des
+
+        self.phi_des_prev_dot = angles_desired_dot[0][0]
+        self.theta_des_prev_dot = angles_desired_dot[1][0]
+        self.psi_des_prev_dot = angles_desired_dot[2][0]
 
         # Updating Control Blocks
         self.Thrust = self.U[0]
