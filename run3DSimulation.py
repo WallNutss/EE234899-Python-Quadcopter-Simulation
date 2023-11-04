@@ -243,8 +243,8 @@ def update_point(n):
     for i in range(0, innerLoop):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
-        #Quadcopter.attitudeController()
-        Quadcopter.attitudeSMCController()
+        Quadcopter.attitudeController()
+        #Quadcopter.attitudeSMCController()
         #Quadcopter.DynamicSolver()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
@@ -318,19 +318,20 @@ def update_point(n):
         x_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[0])
         MSE_X = mean_squared_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten())
         RMSE_X = math.sqrt(MSE_X)
-        #print("RMSE for Position-X: ", RMSE_X)
-        print("MAE for Position-X: ", mean_absolute_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten()))
+        print("RMSE for Position-X: ", RMSE_X)
+        #print("MAE for Position-X: ", mean_absolute_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten()))
 
         y_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[1])
         MSE_Y = mean_squared_error(Quadcopter.posLogs[:,1], y_ref)
         RMSE_Y = math.sqrt(MSE_Y)
-        #print("RMSE for Position-Y: ", RMSE_Y)
-        print("MAE for Position-Y: ", mean_absolute_error(Quadcopter.posLogs[:,1].flatten(), y_ref.flatten()))
+        print("RMSE for Position-Y: ", RMSE_Y)
+        #print("MAE for Position-Y: ", mean_absolute_error(Quadcopter.posLogs[:,1].flatten(), y_ref.flatten()))
+        
         z_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[2])
         MSE_Z = mean_squared_error(Quadcopter.posLogs[:,2], z_ref)
         RMSE_Z = math.sqrt(MSE_Z)
-        #print("RMSE for Position-Z: ", RMSE_Z)
-        print("MAE for Position-Z: ", mean_absolute_error(Quadcopter.posLogs[:,2].flatten(), z_ref.flatten()))
+        print("RMSE for Position-Z: ", RMSE_Z)
+        #print("MAE for Position-Z: ", mean_absolute_error(Quadcopter.posLogs[:,2].flatten(), z_ref.flatten()))
         ani.event_source.stop()
         plt.close('all')
         #df = pd.DataFrame(Quadcopter.posLogs)
@@ -338,5 +339,5 @@ def update_point(n):
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=1000, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update_point, interval=47, blit=True, repeat=True)
 plt.show()

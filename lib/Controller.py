@@ -49,41 +49,47 @@ def PID(Ts, err, err_prev, err_sum, gains):
 
 def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
     # Reference --> Tripathi(2015), Design of Sliding Mode and Backstepping Controllers for a Quadcopter, Kiriman Tuhan Ya Allah, sisa baikin sama ngertiin kinematika kok bisa working nih
-    K = np.array([0.4,      0,    0, \
-                   0,      0.4,    0, \
-                   0,      0,    0.4]).reshape(3,3)
-    K_2 = np.array([0.6,      0,    0, \
-                     0,      0.6,    0, \
-                     0,      0,    0.6]).reshape(3,3)   
+    K = np.array([2.5,      0,    0, \
+                   0,      2.5,    0, \
+                   0,      0,    2.5]).reshape(3,3)
+    K_2 = np.array([1,      0,    0, \
+                     0,      1,    0, \
+                     0,      0,    1]).reshape(3,3)   
     a1 = (inertia[1][1] - inertia[2][2])/inertia[0][0]
-    #b1 = 1/inertia[0][0]
-    b1 = 0.06/inertia[0][0]
-    #b1 = inertia[0][0]/0.06
+    b1 = 1/inertia[0][0]
+    #b1 = 0.06/inertia[0][0]
 
     a2 = (inertia[2][2] - inertia[0][0])/inertia[1][1]
-    #b2 = 1/inertia[1][1]
-    b2 = 0.06/inertia[1][1]
-    #b2 = inertia[1][1]/0.06
+    b2 = 1/inertia[1][1]
+    #b2 = 0.06/inertia[1][1]
 
     a3 = (inertia[0][0] - inertia[1][1])/inertia[2][2]
-    #b3 = 1/inertia[2][2]
     b3 = 1/inertia[2][2]
-    #b3 = inertia[2][2]/0.06
+
     # Roll Control
+    # The first trial of the SMC Control
+    U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    # The second trial of the SMC control
     #U_2 = inertia[0][0]*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
-    U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    #U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     # Pitch Control
+    # The first trial of the SMC Control
+    U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    # The second trial of the SMC Control
     #U_3 = inertia[1][1]*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
-    U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    #U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     # Yaw Control
+    # The first trial of the SMC Control
+    U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    # The second trial of the SMC Control
     #U_4 = inertia[2][2]*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
-    U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    #U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
 
 
     '''
