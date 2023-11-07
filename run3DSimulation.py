@@ -105,7 +105,7 @@ Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2])
 # Create a another figure for pos and thrust
 fig2, ax2 = plt.subplots(3,1)
 xLogs, = ax2[0].plot([],[],'g', lw=2, label="Position x-axis [m]")
-ax2[0].set_xlim(0, 100)
+ax2[0].set_xlim(0, 50)
 ax2[0].set_ylim(-2, 2)
 ax2[0].set_xlabel('Time(s)')
 ax2[0].set_ylabel('X(m)')
@@ -116,7 +116,7 @@ ax2[0].plot(x,y, '--r')
 ax2[0].grid()
 
 yLogs, = ax2[1].plot([],[], 'r', lw=2, label="Position y-axis [m]")
-ax2[1].set_xlim(0, 100)
+ax2[1].set_xlim(0, 50)
 ax2[1].set_ylim(-2, 2)
 ax2[1].set_xlabel('Time(s)')
 ax2[1].set_ylabel('Y(m)')
@@ -127,7 +127,7 @@ ax2[1].plot(x,y, '--r')
 ax2[1].grid()
 
 zLogs, = ax2[2].plot([],[], 'm',lw=2, label="Position z-axis [m]")
-ax2[2].set_xlim(0, 100)
+ax2[2].set_xlim(0, 50)
 ax2[2].set_ylim(3, 5)
 ax2[2].set_xlabel('Time(s)')
 ax2[2].set_ylabel('Z(m)')
@@ -137,6 +137,7 @@ y = np.full_like(x, PositionRef[2])
 ax2[2].plot(x,y, '--r')
 ax2[2].grid()
 
+fig2.subplots_adjust(hspace=0.65)
 fig2.suptitle("Quadcopter Position(m)")
 
 # Thrust
@@ -173,12 +174,13 @@ ax3[3].set_ylabel('Torque(Nm)')
 ax3[3].legend()
 ax3[3].grid()
 
+fig3.subplots_adjust(hspace=0.8)
 fig3.suptitle("Input Thrust Vector")
 
 # Create a another figure for Angle Visualization
 fig4, ax4 = plt.subplots(3,1)
 phiLogs, = ax4[0].plot([],[],'g', lw=2, label="Phi(degree)")
-ax4[0].set_xlim(0, 100)
+ax4[0].set_xlim(0, 50)
 ax4[0].set_ylim(-45, 45)
 ax4[0].set_xlabel('Time(s)')
 ax4[0].set_ylabel('Phi(degree)')
@@ -186,7 +188,7 @@ ax4[0].legend()
 ax4[0].grid()
 
 thetaLogs, = ax4[1].plot([],[],'g', lw=2, label="Theta(degree)")
-ax4[1].set_xlim(0, 100)
+ax4[1].set_xlim(0, 50)
 ax4[1].set_ylim(-45, 45)
 ax4[1].set_xlabel('Time(s)')
 ax4[1].set_ylabel('Theta(degree)')
@@ -194,13 +196,14 @@ ax4[1].legend()
 ax4[1].grid()
 
 psiLogs, = ax4[2].plot([],[],'g', lw=2, label="Psi(degree)")
-ax4[2].set_xlim(0, 100)
+ax4[2].set_xlim(0, 50)
 ax4[2].set_ylim(-15, 15)
 ax4[2].set_xlabel('Time(s)')
 ax4[2].set_ylabel('Psi(degree)')
 ax4[2].legend()
 ax4[2].grid()
 
+fig4.subplots_adjust(hspace=0.45)
 fig4.suptitle("Angles")
 # ------------- Start Simulation ------------- #
 def update_point(n):
@@ -313,7 +316,7 @@ def update_point(n):
         psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
     # TO close the simulation and extract the data
-    if keyboard.is_pressed('esc') or Quadcopter.Time > 40:
+    if keyboard.is_pressed('esc') or Quadcopter.Time > 45:
         print("Simulation Done, Result Print")
         x_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[0])
         MSE_X = mean_squared_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten())
@@ -339,5 +342,71 @@ def update_point(n):
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=47, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True, repeat=True)
+plt.show()
+
+
+# Post-Simulation Graph
+try:
+    figsliding, axsliding = plt.subplots(3,1)
+    axsliding[0].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,0], 'g')
+    axsliding[0].set_title("Sliding Surface of Roll Angle", fontsize=11)
+    axsliding[0].grid()
+
+    axsliding[1].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,1], 'r')
+    axsliding[1].set_title("Sliding Surface of Pitch Angle", fontsize=11)
+    axsliding[1].grid()
+
+    axsliding[2].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,2], 'm')
+    axsliding[2].set_title("Sliding Surface of Yaw Angle", fontsize=11)
+    axsliding[2].grid()
+    figsliding.tight_layout()
+    figsliding.subplots_adjust(top=0.88)
+    figsliding.suptitle("Sliding Surface of Attitude Controller")
+except:
+    print("This is a PID Controller")
+    pass
+
+figpos, axpos = plt.subplots(3,1)
+axpos[0].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,0], 'g')
+#axpos[0].set_xlabel('Time(s)')
+axpos[0].set_ylabel('X Position(m)')
+axpos[0].grid()
+
+axpos[1].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,1], 'r')
+#axpos[1].set_xlabel('Time(s)')
+axpos[1].set_ylabel('Y Position(m)')
+axpos[1].grid()
+
+axpos[2].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,2], 'm')
+axpos[2].set_xlabel('Time(s)')
+axpos[2].set_ylabel('Z Position(m)')
+axpos[2].grid()
+figpos.tight_layout()
+figpos.subplots_adjust(top=0.91)
+figpos.align_labels()
+figpos.suptitle("Position of the Quadcopter")
+
+figu, axu = plt.subplots(4,1, sharex=True)
+axu[0].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,0], 'g')
+# axu[0].set_xlabel('Time(s)')
+axu[0].set_ylabel('U1(N)')
+axu[0].grid()
+
+axu[1].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,1], 'r')
+# axu[1].set_xlabel('Time(s)')
+axu[1].set_ylabel('U2(Nm)')
+axu[1].grid()
+
+axu[2].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,2], 'm')
+# axu[2].set_xlabel('Time(s)')
+axu[2].set_ylabel('U3(Nm)')
+axu[2].grid()
+
+axu[3].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,3], 'm')
+axu[3].set_xlabel('Time(s)')
+axu[3].set_ylabel('U4(Nm)')
+axu[3].grid()
+figu.suptitle("Control Input of Quadcopter")
+figu.align_labels()
 plt.show()

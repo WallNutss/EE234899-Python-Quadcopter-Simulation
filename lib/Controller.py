@@ -3,8 +3,12 @@ import math
 
 def sat(v):
     v = np.copy(v)
-    v[np.abs(v) > 0.25] = np.sign(v[np.abs(v) > 0.25])
+    v[np.abs(v) > 0.1] = np.sign(v[np.abs(v) > 0.1])
     return v
+
+def tanh(x):
+    ans = (math.e**x - math.e**-x)/(math.e**x + math.e**-x)
+    return ans
 
 def PID(Ts, err, err_prev, err_sum, gains):
     """
@@ -21,37 +25,39 @@ def PID(Ts, err, err_prev, err_sum, gains):
     """
     return (gains[0] * err) + (err_sum * gains[1]) + (gains[2] * (err - err_prev)/Ts)
 
-# def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
-#     K = np.array([0.19,      0,    0, \
-#                     0,    0.19,    0, \
-#                     0,      0,  0.19]).reshape(3,3)
-#     # Let him cook
-#     inert_inv = np.linalg.inv(inertia)
+'''
+def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
+    K = np.array([0.19,      0,    0, \
+                    0,    0.19,    0, \
+                    0,      0,  0.19]).reshape(3,3)
+    # Let him cook
+    inert_inv = np.linalg.inv(inertia)
 
-#     # Part A, the Control Equation for attitude
-#     Iw   = np.dot(inertia, angles_dot) # For the I.[p,q,r]
-#     Invw = np.dot(-inert_inv, angles_dot) # For the I^-1.[p,q,r]
+    # Part A, the Control Equation for attitude
+    Iw   = np.dot(inertia, angles_dot) # For the I.[p,q,r]
+    Invw = np.dot(-inert_inv, angles_dot) # For the I^-1.[p,q,r]
 
-#     Inertia_F = np.cross(Invw[:,0], Iw[:,0]).reshape(3,1)
-#     U_eq = Inertia_F  + lamda.dot(angle_error_dot)
-#     #U_eq = inert.dot(Inertia_F - lamda.dot(anglevelocity))
+    Inertia_F = np.cross(Invw[:,0], Iw[:,0]).reshape(3,1)
+    U_eq = Inertia_F  + lamda.dot(angle_error_dot)
+    #U_eq = inert.dot(Inertia_F - lamda.dot(anglevelocity))
 
-#     sliding[0] = sat(sliding[0])
-#     sliding[1] = sat(sliding[1])
-#     sliding[2] = sat(sliding[2])
+    sliding[0] = sat(sliding[0])
+    sliding[1] = sat(sliding[1])
+    sliding[2] = sat(sliding[2])
 
-#     u_smc = (U_eq - K.dot(sliding))
-#     U_SMC = inertia.dot(u_smc)
+    u_smc = (U_eq - K.dot(sliding))
+    U_SMC = inertia.dot(u_smc)
 
-#     print(U_SMC)
-#     print("-------------------------")
-#     return U_SMC
+    print(U_SMC)
+    print("-------------------------")
+    return U_SMC
+'''
 
 def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
     # Reference --> Tripathi(2015), Design of Sliding Mode and Backstepping Controllers for a Quadcopter, Kiriman Tuhan Ya Allah, sisa baikin sama ngertiin kinematika kok bisa working nih
-    K = np.array([2.5,      0,    0, \
-                   0,      2.5,    0, \
-                   0,      0,    2.5]).reshape(3,3)
+    K = np.array([3.5,      0,    0, \
+                   0,      3.5,    0, \
+                   0,      0,    3.5]).reshape(3,3)
     K_2 = np.array([1,      0,    0, \
                      0,      1,    0, \
                      0,      0,    1]).reshape(3,3)   
@@ -68,25 +74,33 @@ def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
 
     # Roll Control
     # The first trial of the SMC Control
-    U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    #U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     # The second trial of the SMC control
-    #U_2 = inertia[0][0]*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    # The third trial of the SMC control
+    U_2 = (1/b1)*( K[0][0]*tanh(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
     #U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+
     # Pitch Control
     # The first trial of the SMC Control
-    U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    #U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     # The second trial of the SMC Control
-    #U_3 = inertia[1][1]*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+    # The third trial of the SMC control
+    U_3 = (1/b2)*( K[1][1]*tanh(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )    
     #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
     #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
     #U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+
     # Yaw Control
     # The first trial of the SMC Control
-    U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    #U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     # The second trial of the SMC Control
-    #U_4 = inertia[2][2]*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    # The third trial of the SMC control    
+    U_4 = (1/b3)*( K[2][2]*tanh(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
     #U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
@@ -130,9 +144,6 @@ def LQR():
 
     K = lqr(A,B,Q,R)
     return K
-
-def ADRC():
-    pass
 
 def antiWindup(x, x_min, x_max):
     """
