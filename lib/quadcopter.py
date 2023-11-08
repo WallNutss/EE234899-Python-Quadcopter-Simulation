@@ -112,6 +112,7 @@ class quadcopter:
 
         # For Sliding Mode Control
         self.lamda = []
+        self.lamda2 = []
 
     def DynamicSolver(self):
         """
@@ -129,15 +130,15 @@ class quadcopter:
         R   = bRe.transpose()
 
         #Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
-        if self.Time > 10:
-            try:
-                self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
-            except:
-                self.dstate[0:3] = self.state[3:6]
-            #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
-        else:
-            self.dstate[0:3] = self.state[3:6]
-        #self.dstate[0:3] = self.state[3:6]
+        # if self.Time > 10:
+        #     try:
+        #         self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+        #     except:
+        #         self.dstate[0:3] = self.state[3:6]
+        #     #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
+        # else:
+        #     self.dstate[0:3] = self.state[3:6]
+        self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
@@ -301,6 +302,9 @@ class quadcopter:
         self.lamda = np.array([  4.5,      0,    0, \
                                  0,      4.5,    0, \
                                  0,      0,    4.5]).reshape(3,3)
+        self.lamda2 = np.array([ 0.1,      0,    0, \
+                                 0,     0.1,    0, \
+                                 0,      0,    0.1]).reshape(3,3)
         #Getting the measurement first
         phi = self.state[6]
         theta = self.state[7]
@@ -320,10 +324,12 @@ class quadcopter:
         angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
 
         # Calculation for Sliding Surface
-        slidingsurface = angle_error_dot + self.lamda.dot(angle_error)
+        #slidingsurface = angle_error_dot + self.lamda.dot(angle_error)
+        # calculation for integral sliding surface
+        slidingsurface = angle_error_dot + self.lamda.dot(angle_error) + self.lamda2.dot(integral_angle_error)
 
         # Defining Control Equation for SMC Controller
-        control = SMC(slidingsurface, self.Inert, angles_dot, self.lamda, angle_error_dot, integral_angle_error)
+        control = SMC(slidingsurface, self.Inert, self.lamda, self.lamda2, angle_error, angles_dot, angle_error_dot, integral_angle_error)
 
         # U2_Equation
         self.U[1] = control[0]

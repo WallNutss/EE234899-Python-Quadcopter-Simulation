@@ -14,6 +14,8 @@ from lib.rotation import RPY2XYZ, D2R, R2D
 # Import Anti Windup
 from lib.Controller import antiWindup
 
+DEBUG = True
+
 # Body Frame Location for Transformation Matrix Preparation
             # Position Motor1  Motor2 Motor3  Motor4, MoC , LoS
 drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
@@ -217,22 +219,22 @@ def update_point(n):
     # Interesting moving target? Below there are 4 waypoints making 
     #PositionRef[0] = PositionRef[0] + 0.002
     #PositionRef[1] = PositionRef[1] + 0.002
-    # if Quadcopter.Time > 20:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = -0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 35:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = 0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 45:
-    #     PositionRef[0] = -0.8
-    #     PositionRef[1] = 0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 55:
-    #     PositionRef[0] = -0.8
-    #     PositionRef[1] = -0.8
-    #     PositionRef[2] = 4.3
+    if Quadcopter.Time > 20:
+        PositionRef[0] = 0.8
+        PositionRef[1] = -0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 35:
+        PositionRef[0] = 0.8
+        PositionRef[1] = 0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 45:
+        PositionRef[0] = -0.8
+        PositionRef[1] = 0.8
+        PositionRef[2] = 3.5
+    if Quadcopter.Time > 55:
+        PositionRef[0] = -0.8
+        PositionRef[1] = -0.8
+        PositionRef[2] = 4.3
 
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
     Quadcopter.DynamicSolver()
@@ -246,8 +248,8 @@ def update_point(n):
     for i in range(0, innerLoop):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
-        Quadcopter.attitudeController()
-        #Quadcopter.attitudeSMCController()
+        #Quadcopter.attitudeController()
+        Quadcopter.attitudeSMCController()
         #Quadcopter.DynamicSolver()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
@@ -316,7 +318,7 @@ def update_point(n):
         psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
     # TO close the simulation and extract the data
-    if keyboard.is_pressed('esc') or Quadcopter.Time > 45:
+    if keyboard.is_pressed('esc') or Quadcopter.Time > 75:
         print("Simulation Done, Result Print")
         x_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[0])
         MSE_X = mean_squared_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten())
@@ -337,14 +339,16 @@ def update_point(n):
         #print("MAE for Position-Z: ", mean_absolute_error(Quadcopter.posLogs[:,2].flatten(), z_ref.flatten()))
         ani.event_source.stop()
         plt.close('all')
-        #df = pd.DataFrame(Quadcopter.posLogs)
-        #df.to_excel('./data/dataSMCnormal.xlsx')
+        if DEBUG:
+            pass
+        else:
+            df = pd.DataFrame(Quadcopter.posLogs)
+            df.to_excel('./data/dataSMCnormal.xlsx')
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
 ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True, repeat=True)
 plt.show()
-
 
 # Post-Simulation Graph
 try:
