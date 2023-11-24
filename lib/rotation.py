@@ -35,7 +35,6 @@ def RPY2XYZ(angles): # Abrevation of Roll,Pitch,Yaw from Body Frame to XYZ Globa
     
     # Rz*Ry*Rz = RX*RY*RZ // Body Frame to Inertial Frame Connection
     R = np.dot(Rz, np.dot(Ry,Rx))
-
     return R
 
 def D2R(x):

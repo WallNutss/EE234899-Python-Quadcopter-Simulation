@@ -32,7 +32,7 @@ class quadcopter:
         self.min_motor_speed = 0
 
         .0      # rpm , min motor speed rotation per minute
-        self.u1_max          = 19.57   # N
+        self.u1_max          = 19.57    # N
         self.u1_min          = 0.0      # N
         self.u2_max          = 2.32     # Nm
         self.u2_min          = -2.32    # Nm
@@ -100,6 +100,7 @@ class quadcopter:
 
         # For Logs Purpose
         self.timeLogs  = np.array([0.0])
+        self.errorxyz  = np.array([0.0, 0.0, 0.0])
         self.angleLogs = np.array([0.0, 0.0, 0.0])
         self.posLogs   = np.array([0.0, 0.0, 0.0])
         self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
@@ -107,6 +108,7 @@ class quadcopter:
 
         # Wind Turbulance for Uncentainties
         self.wind = DydrenWind().Model()
+        self.DISTURBANCE = False
         self.iter = 0
         self.PID = True
 
@@ -129,16 +131,18 @@ class quadcopter:
         bRe = RPY2XYZ(self.state[6:9])
         R   = bRe.transpose()
 
-        #Derivative State 1 to 3, the velocity, because past state define the future stat,in this function all the disturbance wether its internal of external is put down here
-        # if self.Time > 10:
-        #     try:
-        #         self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
-        #     except:
-        #         self.dstate[0:3] = self.state[3:6]
-        #     #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
-        # else:
-        #     self.dstate[0:3] = self.state[3:6]
-        self.dstate[0:3] = self.state[3:6]
+        #Derivative State 1 to 3, the velocity, because past state define the future state,in this function all the disturbance wether its internal of external is put down here
+        if self.DISTURBANCE:
+            if self.Time > 10:
+                try:
+                    self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
+                except:
+                    self.dstate[0:3] = self.state[3:6]
+                #self.dstate[0:3] = self.state[3:6] + np.array([2.0, 2.0,2.0]).reshape(3,1)
+            else:
+                self.dstate[0:3] = self.state[3:6]
+        else:
+            self.dstate[0:3] = self.state[3:6]
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
@@ -228,7 +232,8 @@ class quadcopter:
         # I know this will fucked me up later, but I still don't know the cause why
         # When I put - sign in all desired angles, it will work
         # EDIT : Fuck Fuck Fuck, When you put Ux and Uy on the negative side, it all make sense when I dont put - sign in angles desired
-        if self.psi_des < pi/4 or self.psi_des > pi/4:
+        # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside
+        if self.psi_des < pi/4 or self.psi_des > 3*pi/4:
             self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
         else:
             self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
@@ -255,56 +260,27 @@ class quadcopter:
         self.z_err_prev = self.z_err
         self.z_err_sum = self.z_err_sum + self.z_err
 
-    def attitudeController(self):
-        #Getting the measurement first
-        phi = self.state[6]
-        theta = self.state[7]
-        psi = self.state[8]
+        # Logs
+        self.errorxyz = np.vstack((self.errorxyz, np.array([self.x_err, self.y_err, self.z_err]).flatten()))
 
-        #self.phi_des = Reference[0]
-        #self.theta_des = Reference[1]
-        #self.psi_des = Reference[2]
+    def positionSMCController(self, Reference):
+        #Getting the measurement first, this is on Inertial Frame {EF}
+        x_pos = self.state[0]
+        y_pos = self.state[1]
+        z_pos = self.state[2]
+
+        #Getting the Reference,also on Inertial Frame {EF}
+        self.x_des = Reference[0]
+        self.y_des = Reference[1]
+        self.z_des = Reference[2]
 
         # Getting the error from reference - measurement
-        self.phi_err = self.phi_des - phi
-        self.theta_err = self.theta_des - theta
-        self.psi_err = self.psi_des - psi
+        self.x_err = self.x_des - x_pos
+        self.y_err = self.y_des - y_pos
+        self.z_err = self.z_des - z_pos
+        pass
 
-        # U2
-        self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.2]))
-        # U3
-        self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.4, 0.03, 0.3]))
-        # U4
-        self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.2, 0.01, 0.4]))
-
-        # Anti Windup
-        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
-        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
-        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
-        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
-
-        # Updating Error Value
-        self.phi_err_prev = self.phi_err
-        self.phi_err_sum = self.phi_err_sum + self.phi_err
-
-        self.theta_err_prev = self.theta_err
-        self.theta_err_sum = self.theta_err_sum + self.theta_err
-
-        self.psi_err_prev = self.psi_err
-        self.psi_err_sum = self.psi_err_sum + self.psi_err
-
-        # Updating Control Blocks
-        self.Thrust = self.U[0]
-        self.M = self.U[1:4]
-
-
-    def attitudeSMCController(self):
-        self.lamda = np.array([  4.5,      0,    0, \
-                                 0,      4.5,    0, \
-                                 0,      0,    4.5]).reshape(3,3)
-        self.lamda2 = np.array([ 0.1,      0,    0, \
-                                 0,     0.1,    0, \
-                                 0,      0,    0.1]).reshape(3,3)
+    def attitudeController(self, **kwargs):
         #Getting the measurement first
         phi = self.state[6]
         theta = self.state[7]
@@ -315,7 +291,7 @@ class quadcopter:
         self.theta_err = self.theta_des - theta
         self.psi_err = self.psi_des - psi
 
-        # Combining them in one array
+        # Combining them in one array for log purpose
         angle_error = np.array([self.phi_err, self.theta_err, self.psi_err]).reshape(3,1)
         angle_error_dot = np.array([(self.phi_err - self.phi_err_prev)/self.Ts, (self.theta_err - self.theta_err_prev)/self.Ts, (self.psi_err - self.psi_err_prev)/self.Ts]).reshape(3,1)
         integral_angle_error = np.array([self.phi_err_sum, self.theta_err_sum, self.psi_err_sum]).reshape(3,1)
@@ -323,20 +299,26 @@ class quadcopter:
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame), this is angulare rates on Inertial Frame Perspective
         angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
 
-        # Calculation for Sliding Surface
-        #slidingsurface = angle_error_dot + self.lamda.dot(angle_error)
-        # calculation for integral sliding surface
-        slidingsurface = angle_error_dot + self.lamda.dot(angle_error) + self.lamda2.dot(integral_angle_error)
+        if kwargs['controller'] == 0: # PID Controller
+            # U2
+            self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.2]))
+            # U3
+            self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.4, 0.03, 0.3]))
+            # U4
+            self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.2, 0.01, 0.4]))
 
-        # Defining Control Equation for SMC Controller
-        control = SMC(slidingsurface, self.Inert, self.lamda, self.lamda2, angle_error, angles_dot, angle_error_dot, integral_angle_error)
+        elif kwargs['controller'] == 1: # Sliding Mode Controller
+            # Defining Control Equation for SMC Controller
+            control, slidingsurface, smctype = SMC(self.Inert, angle_error, angles_dot, angle_error_dot, integral_angle_error, control=kwargs['smctype'])
+            # U2_Equation
+            self.U[1] = control[0]
+            # U3_Equation
+            self.U[2] = control[1]
+            # U4_Equation
+            self.U[3] = control[2]
 
-        # U2_Equation
-        self.U[1] = control[0]
-        # U3_Equation
-        self.U[2] = control[1]
-        # U4_Equation
-        self.U[3] = control[2]
+            # For logs and History
+            self.SlidingSurface = np.vstack((self.SlidingSurface, slidingsurface.flatten()))
 
         # Anti Windup
         self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
@@ -346,11 +328,12 @@ class quadcopter:
 
         # Updating Error Value
         self.phi_err_prev = self.phi_err
-        self.theta_err_prev = self.theta_err
-        self.psi_err_prev = self.psi_err
-        
         self.phi_err_sum = self.phi_err_sum + self.phi_err
+
+        self.theta_err_prev = self.theta_err
         self.theta_err_sum = self.theta_err_sum + self.theta_err
+
+        self.psi_err_prev = self.psi_err
         self.psi_err_sum = self.psi_err_sum + self.psi_err
 
         # Updating Error Desired Value
@@ -358,12 +341,10 @@ class quadcopter:
         self.theta_des_prev = self.theta_des
         self.psi_des_prev = self.psi_des
 
-        # For logs and History
-        self.SlidingSurface = np.vstack((self.SlidingSurface, slidingsurface.flatten()))
-
         # Updating Control Blocks
         self.Thrust = self.U[0]
         self.M = self.U[1:4]
+
 
     def attitudeLQRController(self):
         #Getting the measurement first

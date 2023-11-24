@@ -10,6 +10,14 @@ def tanh(x):
     ans = (math.e**x - math.e**-x)/(math.e**x + math.e**-x)
     return ans
 
+def sobolevaTanh(x):
+    if x > 0:
+        return x
+    elif x < 0:
+        return 0.01*x
+    else:
+        return 0
+
 def PID(Ts, err, err_prev, err_sum, gains):
     """
     Performing a Proportional-Integral-Derivative (PID) controller
@@ -53,7 +61,7 @@ def SMC(sliding, inertia, angles_dot, lamda, angle_error_dot):
     return U_SMC
 '''
 
-def SMC(sliding, inertia, lamda, lamda2, angle_error, angles_dot, angle_error_dot, integral_angle_error):
+def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error, **kwargs):
     """
     Performing a custom (SMC) controller special for this simulation
     
@@ -68,12 +76,21 @@ def SMC(sliding, inertia, lamda, lamda2, angle_error, angles_dot, angle_error_do
         Control Input for the system
     """
     # Reference --> Tripathi(2015), Design of Sliding Mode and Backstepping Controllers for a Quadcopter, Kiriman Tuhan Ya Allah, sisa baikin sama ngertiin kinematika kok bisa working nih
+    control = kwargs['control']
+    
     K = np.array([3.5,      0,    0, \
                    0,      3.5,    0, \
                    0,      0,    3.5]).reshape(3,3)
     K_2 = np.array([1,      0,    0, \
                      0,      1,    0, \
                      0,      0,    1]).reshape(3,3)   
+    
+    lamda = np.array([  4.5,      0,    0, \
+                                 0,      4.5,    0, \
+                                 0,      0,    4.5]).reshape(3,3)
+    lamda2 = np.array([ 0.1,      0,    0, \
+                                 0,     0.1,    0, \
+                                 0,      0,    0.1]).reshape(3,3)
     
     a1 = (inertia[1][1] - inertia[2][2])/inertia[0][0]
     b1 = 1/inertia[0][0]
@@ -84,51 +101,61 @@ def SMC(sliding, inertia, lamda, lamda2, angle_error, angles_dot, angle_error_do
     a3 = (inertia[0][0] - inertia[1][1])/inertia[2][2]
     b3 = 1/inertia[2][2]
 
-    # Roll Control
-    # The first trial of the SMC Control
-    #U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
-    # The second trial of the SMC control
-    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
-    # The third trial of the SMC control
-    #U_2 = (1/b1)*( K[0][0]*tanh(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    if control == 1: # Conventional SMC with Sign Switching Function
+        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        # Roll Control
+        U_2 = (1/b1)*( K[0][0]*np.sign(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+        # Pitch Control
+        U_3 = (1/b2)*( K[1][1]*np.sign(slidingsurface[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+        # Yaw Control
+        U_4 = (1/b3)*( K[2][2]*np.sign(slidingsurface[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
 
-    # The fourh part of the smc control
-    U_2 = (1/b1)*( K[0][0]*tanh(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] + lamda2[0][0]*angle_error[0])
+        smctype = 'Conventional SMC with Sign Switching Function'
 
-    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
-    #U_2 = (1/b1)*( K[0][0]*sat(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
-    #U_2 = (1/b1)*( K[0][0]*np.sign(sliding[0]) + K_2[0][0]*sliding[0] - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+    elif control == 2: # Conventional SMC but with Saturation Switching Function
+        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        # Roll Control
+        U_2 = (1/b1)*( K[0][0]*sat(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+        # Pitch Control
+        U_3 = (1/b2)*( K[1][1]*sat(slidingsurface[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+        # Yaw Control
+        U_4 = (1/b3)*( K[2][2]*sat(slidingsurface[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
 
-    # Pitch Control
-    # The first trial of the SMC Control
-    #U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
-    # The second trial of the SMC Control
-    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
-    # The third trial of the SMC control
-    #U_3 = (1/b2)*( K[1][1]*tanh(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )  
+        smctype = 'Conventional SMC but with Saturation Switching Function'
 
-    # The fourh part of the SMC Contrl
-    U_3 = (1/b2)*( K[1][1]*tanh(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] + lamda2[1][1]*angle_error[1])  
+    elif control == 3: # Conventional SMC but with Tanh Switching Function
+        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        # Roll Control
+        U_2 = (1/b1)*( K[0][0]*tanh(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
+        # Pitch Control
+        U_3 = (1/b2)*( K[1][1]*tanh(slidingsurface[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+        # Yaw Control
+        U_4 = (1/b3)*( K[2][2]*tanh(slidingsurface[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
 
-    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
-    #U_3 = (1/b2)*( K[1][1]*sat(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
-    #U_3 = (1/b2)*( K[1][1]*np.sign(sliding[1]) + K_2[1][1]*sliding[1] - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] )
+        smctype = 'Conventional SMC but with Tanh Switching Function'
+        
 
-    # Yaw Control
-    # The first trial of the SMC Control
-    #U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
-    # The second trial of the SMC Control
-    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
-    # The third trial of the SMC control    
-    #U_4 = (1/b3)*( K[2][2]*tanh(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    elif control == 4: # Integral Sliding Mode Control with Modified Tanh Switching Function
+        slidingsurface = angle_error_dot + lamda.dot(angle_error) + lamda2.dot(integral_angle_error)
+        # Roll Control
+        U_2 = (1/b1)*( K[0][0]*tanh(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] + lamda2[0][0]*angle_error[0])
+        # Pitch Control
+        U_3 = (1/b2)*( K[1][1]*tanh(slidingsurface[1]) - a2*angles_dot[0]*angles_dot[2] + lamda[1][1]*angle_error_dot[1] + lamda2[1][1]*angle_error[1])
+        # Yaw Control
+        U_4 = (1/b3)*( K[2][2]*tanh(slidingsurface[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] + lamda2[2][2]*angle_error[2])
 
-    # The fourth part of the SMC Control
-    U_4 = (1/b3)*( K[2][2]*tanh(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] + lamda2[2][2]*angle_error[2])
+        smctype = 'Integral Sliding Mode Control with Modified Tanh Switching Function' 
 
-    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
-    #U_4 = (1/b3)*( K[2][2]*sat(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
-    #U_4 = (1/b3)*( K[2][2]*np.sign(sliding[2]) + K_2[2][2]*sliding[2] - a3*angles_dot[0]*angles_dot[1] + lamda[2][2]*angle_error_dot[2] )
+    elif control == 5: # Control method from Adapthi GOD paper with modified adding sliding value to switching function
+        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        # Roll Control
+        U_2 = (1/b1)*( K[0][0]*sat(slidingsurface[0]) + K_2[0][0]*slidingsurface[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
+        # Pitch Control
+        U_3 = (1/b2)*( K[1][1]*sat(slidingsurface[1]) + K_2[1][1]*slidingsurface[1] - a2*angles_dot[0]*angles_dot[2] - lamda[1][1]*angle_error_dot[1] )
+        # Yaw Control
+        U_4 = (1/b3)*( K[2][2]*sat(slidingsurface[2]) + K_2[2][2]*slidingsurface[2] - a3*angles_dot[0]*angles_dot[1] - lamda[2][2]*angle_error_dot[2] )
 
+        smctype = 'Control method from Adapthi GOD paper with modified adding sliding value to switching function'
 
     '''
     Messsage corner
@@ -142,7 +169,7 @@ def SMC(sliding, inertia, lamda, lamda2, angle_error, angles_dot, angle_error_do
 
     '''
     U_SMC = np.array([U_2,U_3,U_4]).reshape(3,1)
-    return U_SMC
+    return U_SMC, slidingsurface, smctype
 
 def LQR():
     # RN, for the base I go with linearization of the rates

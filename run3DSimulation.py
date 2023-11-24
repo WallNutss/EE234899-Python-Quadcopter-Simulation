@@ -13,6 +13,10 @@ from lib.quadcopter import quadcopter
 from lib.rotation import RPY2XYZ, D2R, R2D
 # Import Anti Windup
 from lib.Controller import antiWindup
+# Import Trajectory Generator
+from lib.trajectoryGenerator import WaypointGenerator
+# Import Plotting Modularity
+from lib.plotting import plot_post_simulation
 
 DEBUG = True
 
@@ -23,12 +27,14 @@ drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
                        [    0 ,     0,     0,      0, 0.0,   0.0],  # Z Position
                        [     1,     1,     1,      1,   1,     1]]) # Adder
 
-
+# 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
+# Maybe the breaks caused by the simple 
 Quadcopter = quadcopter(Ts=0.02)
+waypoints = WaypointGenerator().trajectory(state=1)
 
 # ------------- Inisialization of plot figure ------------- #
 # Create a figure and a 3D axis
-fig = plt.figure()
+fig = plt.figure(figsize=(7,7))
 ax = fig.add_subplot(111, projection='3d')
 state_display = ax.text2D(0.17, 0.90, "green" ,color='green', transform=ax.transAxes)
 time_display = ax.text2D(0.17, 0.85, "red" ,color='red', transform=ax.transAxes)
@@ -83,9 +89,6 @@ ax.zaxis.set_major_locator(MultipleLocator(1))
 ax.set_xlim(-1.5, 1)
 ax.set_ylim(-1.5, 1)
 ax.set_zlim(0, 5)
-# ax.set_xlim(-50, 50)
-# ax.set_ylim(-50, 50)
-# ax.set_zlim(0, 10)
 
 phi_ref     = D2R(0)
 theta_ref   = D2R(0)
@@ -101,8 +104,7 @@ PositionRef = np.array([x_des, y_des, z_des])
 # Random Position
 #PositionRef = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1),np.random.uniform(2,5)])
 
-#Ref, = ax.plot(PositionRef[0],PositionRef[1],PositionRef[2], 'ro', markersize='3')
-Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2])
+Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2], facecolor=(0,0,0,0), marker='o', edgecolor='r')
 
 # Create a another figure for pos and thrust
 fig2, ax2 = plt.subplots(3,1)
@@ -223,15 +225,15 @@ def update_point(n):
         PositionRef[0] = 0.8
         PositionRef[1] = -0.8
         PositionRef[2] = 3.5
-    if Quadcopter.Time > 35:
+    if Quadcopter.Time > 30:
+        PositionRef[0] = 0.3
+        PositionRef[1] = 0.7
+        PositionRef[2] = 1.5
+    if Quadcopter.Time > 40:
         PositionRef[0] = 0.8
-        PositionRef[1] = 0.8
-        PositionRef[2] = 3.5
-    if Quadcopter.Time > 45:
-        PositionRef[0] = -0.8
-        PositionRef[1] = 0.8
-        PositionRef[2] = 3.5
-    if Quadcopter.Time > 55:
+        PositionRef[1] = -0.9
+        PositionRef[2] = 4.5
+    if Quadcopter.Time > 50:
         PositionRef[0] = -0.8
         PositionRef[1] = -0.8
         PositionRef[2] = 4.3
@@ -248,8 +250,7 @@ def update_point(n):
     for i in range(0, innerLoop):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
-        #Quadcopter.attitudeController()
-        Quadcopter.attitudeSMCController()
+        Quadcopter.attitudeController(controller=1,smctype=3)
         #Quadcopter.DynamicSolver()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
@@ -318,7 +319,7 @@ def update_point(n):
         psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
     # TO close the simulation and extract the data
-    if keyboard.is_pressed('esc') or Quadcopter.Time > 75:
+    if keyboard.is_pressed('esc') or Quadcopter.Time > 100:
         print("Simulation Done, Result Print")
         x_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[0])
         MSE_X = mean_squared_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten())
@@ -347,70 +348,9 @@ def update_point(n):
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
-ani = animation.FuncAnimation(fig, update_point, interval=30, blit=True, repeat=True)
+ani = animation.FuncAnimation(fig, update_point, interval=25, blit=True, repeat=False)
 plt.show()
 
 # Post-Simulation Graph
-try:
-    figsliding, axsliding = plt.subplots(3,1)
-    axsliding[0].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,0], 'g')
-    axsliding[0].set_title("Sliding Surface of Roll Angle", fontsize=11)
-    axsliding[0].grid()
-
-    axsliding[1].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,1], 'r')
-    axsliding[1].set_title("Sliding Surface of Pitch Angle", fontsize=11)
-    axsliding[1].grid()
-
-    axsliding[2].plot(Quadcopter.timeLogs, Quadcopter.SlidingSurface[:,2], 'm')
-    axsliding[2].set_title("Sliding Surface of Yaw Angle", fontsize=11)
-    axsliding[2].grid()
-    figsliding.tight_layout()
-    figsliding.subplots_adjust(top=0.88)
-    figsliding.suptitle("Sliding Surface of Attitude Controller")
-except:
-    print("This is a PID Controller")
-    pass
-
-figpos, axpos = plt.subplots(3,1)
-axpos[0].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,0], 'g')
-#axpos[0].set_xlabel('Time(s)')
-axpos[0].set_ylabel('X Position(m)')
-axpos[0].grid()
-
-axpos[1].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,1], 'r')
-#axpos[1].set_xlabel('Time(s)')
-axpos[1].set_ylabel('Y Position(m)')
-axpos[1].grid()
-
-axpos[2].plot(Quadcopter.timeLogs, Quadcopter.posLogs[:,2], 'm')
-axpos[2].set_xlabel('Time(s)')
-axpos[2].set_ylabel('Z Position(m)')
-axpos[2].grid()
-figpos.tight_layout()
-figpos.subplots_adjust(top=0.91)
-figpos.align_labels()
-figpos.suptitle("Position of the Quadcopter")
-
-figu, axu = plt.subplots(4,1, sharex=True)
-axu[0].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,0], 'g')
-# axu[0].set_xlabel('Time(s)')
-axu[0].set_ylabel('U1(N)')
-axu[0].grid()
-
-axu[1].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,1], 'r')
-# axu[1].set_xlabel('Time(s)')
-axu[1].set_ylabel('U2(Nm)')
-axu[1].grid()
-
-axu[2].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,2], 'm')
-# axu[2].set_xlabel('Time(s)')
-axu[2].set_ylabel('U3(Nm)')
-axu[2].grid()
-
-axu[3].plot(Quadcopter.timeLogs, Quadcopter.ULogs[:,3], 'm')
-axu[3].set_xlabel('Time(s)')
-axu[3].set_ylabel('U4(Nm)')
-axu[3].grid()
-figu.suptitle("Control Input of Quadcopter")
-figu.align_labels()
-plt.show()
+plot_post_simulation(Quadcopter.timeLogs, Quadcopter.posLogs, Quadcopter.ULogs, Quadcopter.SlidingSurface)
+plt.close()
