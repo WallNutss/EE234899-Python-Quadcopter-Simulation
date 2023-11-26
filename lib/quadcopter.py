@@ -10,7 +10,7 @@ from lib.Controller import PID, antiWindup, SMC, LQR
 from windModel.dydrenwind import DydrenWind
 
 class quadcopter:
-    def __init__(self, Ts = 1.0/50.0):
+    def __init__(self, Ts = 1.0/50.0, experiment='Default', **kwargs):
         # Tello Params
         self.g      = 9.81              # m/s^2             , gravity acceleration
         self.m      = 0.08              # kg                , mass of the drone
@@ -29,9 +29,7 @@ class quadcopter:
 
         # Motor Params (Speed, rpm, etc)
         self.max_motor_speed = 2200.0   # rpm , max motor speed rotation per minute
-        self.min_motor_speed = 0
-
-        .0      # rpm , min motor speed rotation per minute
+        self.min_motor_speed = 0.0      # rpm , min motor speed rotation per minute
         self.u1_max          = 19.57    # N
         self.u1_min          = 0.0      # N
         self.u2_max          = 2.32     # Nm
@@ -106,11 +104,14 @@ class quadcopter:
         self.ULogs     = np.array([0.0, 0.0, 0.0, 0.0])
         self.SlidingSurface = np.array([0.0, 0.0, 0.0])
 
-        # Wind Turbulance for Uncentainties
+        # Wind Turbulance for Uncentainties and etc
         self.wind = DydrenWind().Model()
-        self.DISTURBANCE = False
+        self.DISTURBANCE = True
         self.iter = 0
         self.PID = True
+        self.experiment = experiment
+        self.controller = kwargs['controller']
+        self.smctype = kwargs['smctype']
 
         # For Sliding Mode Control
         self.lamda = []
@@ -194,11 +195,18 @@ class quadcopter:
 
         print('Roll: %.2f°, Pitch: %.2f°, Yaw: %.2f°' % (R2D(self.state[6]), R2D(self.state[7]), R2D(self.state[8])))
 
+        # Update Position Error, no other way now
+        self.x_err = self.x_des - self.r[0]
+        self.y_err = self.y_des - self.r[1]
+        self.z_err = self.z_des - self.r[2]
+
         # Logs & History
         self.timeLogs  = np.append(self.timeLogs, self.Time)
         self.angleLogs = np.vstack((self.angleLogs, np.array([R2D(self.angles[0][0]),R2D(self.angles[1][0]) ,R2D(self.angles[2][0])])))
         self.posLogs   = np.vstack((self.posLogs, self.r.flatten()))
         self.ULogs     = np.vstack((self.ULogs, self.U.flatten()))
+        # Logs
+        self.errorxyz = np.vstack((self.errorxyz, np.array([self.x_err, self.y_err, self.z_err]).flatten()))
 
     def positionController(self, Reference):
         #Getting the measurement first, this is on Inertial Frame {EF}
@@ -260,8 +268,6 @@ class quadcopter:
         self.z_err_prev = self.z_err
         self.z_err_sum = self.z_err_sum + self.z_err
 
-        # Logs
-        self.errorxyz = np.vstack((self.errorxyz, np.array([self.x_err, self.y_err, self.z_err]).flatten()))
 
     def positionSMCController(self, Reference):
         #Getting the measurement first, this is on Inertial Frame {EF}
@@ -280,7 +286,20 @@ class quadcopter:
         self.z_err = self.z_des - z_pos
         pass
 
-    def attitudeController(self, **kwargs):
+    def attitudeController(self):
+        """
+        Attitude Controller Calculation
+
+        Parameters
+        ----------
+        **kwargs: Additional parameters for SMC Type Controller
+            `1` controller (`int`) , type of controller we want. `0` == PID , `1` == SMC\n
+            `2` smctype (`int`), type of SMC we want. `1` == SMC-Sign , `2` == SMC-Sat, `3` == SMC-Tanh , `4` == ISMC-Tanh, `5` == Tripathi Reference ,
+        
+        Return
+        ----------
+        Nothing, it just a method calculation. Return is in form on Re-Iniliazation of Self Class
+        """
         #Getting the measurement first
         phi = self.state[6]
         theta = self.state[7]
@@ -299,7 +318,7 @@ class quadcopter:
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame), this is angulare rates on Inertial Frame Perspective
         angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
 
-        if kwargs['controller'] == 0: # PID Controller
+        if self.controller == 0: # PID Controller
             # U2
             self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.2]))
             # U3
@@ -307,9 +326,9 @@ class quadcopter:
             # U4
             self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.2, 0.01, 0.4]))
 
-        elif kwargs['controller'] == 1: # Sliding Mode Controller
+        elif self.controller == 1: # Sliding Mode Controller
             # Defining Control Equation for SMC Controller
-            control, slidingsurface, smctype = SMC(self.Inert, angle_error, angles_dot, angle_error_dot, integral_angle_error, control=kwargs['smctype'])
+            control, slidingsurface, smctype = SMC(self.Inert, angle_error, angles_dot, angle_error_dot, integral_angle_error, control=self.smctype)
             # U2_Equation
             self.U[1] = control[0]
             # U3_Equation

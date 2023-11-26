@@ -5,7 +5,7 @@ from matplotlib import animation
 from matplotlib.ticker import (MultipleLocator, AutoMinorLocator)
 import keyboard
 import pandas as pd
-from sklearn.metrics import mean_squared_error,mean_absolute_error
+
 
 # Importing class Quadcopter
 from lib.quadcopter import quadcopter
@@ -17,8 +17,8 @@ from lib.Controller import antiWindup
 from lib.trajectoryGenerator import WaypointGenerator
 # Import Plotting Modularity
 from lib.plotting import plot_post_simulation
+from lib.plotting import reporting
 
-DEBUG = True
 
 # Body Frame Location for Transformation Matrix Preparation
             # Position Motor1  Motor2 Motor3  Motor4, MoC , LoS
@@ -28,8 +28,12 @@ drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
                        [     1,     1,     1,      1,   1,     1]]) # Adder
 
 # 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
-# Maybe the breaks caused by the simple 
-Quadcopter = quadcopter(Ts=0.02)
+# Maybe the breaks caused by the simple
+
+DEBUG = False
+experiment_name = 'SMC_Tripathi-Disturbance'
+Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=5)
+
 waypoints = WaypointGenerator().trajectory(state=1)
 
 # ------------- Inisialization of plot figure ------------- #
@@ -221,22 +225,22 @@ def update_point(n):
     # Interesting moving target? Below there are 4 waypoints making 
     #PositionRef[0] = PositionRef[0] + 0.002
     #PositionRef[1] = PositionRef[1] + 0.002
-    if Quadcopter.Time > 20:
-        PositionRef[0] = 0.8
-        PositionRef[1] = -0.8
-        PositionRef[2] = 3.5
-    if Quadcopter.Time > 30:
-        PositionRef[0] = 0.3
-        PositionRef[1] = 0.7
-        PositionRef[2] = 1.5
-    if Quadcopter.Time > 40:
-        PositionRef[0] = 0.8
-        PositionRef[1] = -0.9
-        PositionRef[2] = 4.5
-    if Quadcopter.Time > 50:
-        PositionRef[0] = -0.8
-        PositionRef[1] = -0.8
-        PositionRef[2] = 4.3
+    # if Quadcopter.Time > 20:
+    #     PositionRef[0] = 0.8
+    #     PositionRef[1] = -0.8
+    #     PositionRef[2] = 3.5
+    # if Quadcopter.Time > 30:
+    #     PositionRef[0] = 0.3
+    #     PositionRef[1] = 0.7
+    #     PositionRef[2] = 1.5
+    # if Quadcopter.Time > 40:
+    #     PositionRef[0] = 0.8
+    #     PositionRef[1] = -0.9
+    #     PositionRef[2] = 4.5
+    # if Quadcopter.Time > 50:
+    #     PositionRef[0] = -0.8
+    #     PositionRef[1] = -0.8
+    #     PositionRef[2] = 4.3
 
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
     Quadcopter.DynamicSolver()
@@ -250,7 +254,7 @@ def update_point(n):
     for i in range(0, innerLoop):
         Quadcopter.DynamicSolver()
         # Control the unit of the quadcopter
-        Quadcopter.attitudeController(controller=1,smctype=3)
+        Quadcopter.attitudeController()
         #Quadcopter.DynamicSolver()
         # Updating the state, in here there lies the calculation of the dynamics model and integration from the result to form original state
         Quadcopter.updateState()
@@ -319,38 +323,18 @@ def update_point(n):
         psiLogs.set_data(Quadcopter.timeLogs, Quadcopter.angleLogs[:,2])
 
     # TO close the simulation and extract the data
-    if keyboard.is_pressed('esc') or Quadcopter.Time > 100:
+    if keyboard.is_pressed('esc') or Quadcopter.Time > 50:
         print("Simulation Done, Result Print")
-        x_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[0])
-        MSE_X = mean_squared_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten())
-        RMSE_X = math.sqrt(MSE_X)
-        print("RMSE for Position-X: ", RMSE_X)
-        #print("MAE for Position-X: ", mean_absolute_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten()))
-
-        y_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[1])
-        MSE_Y = mean_squared_error(Quadcopter.posLogs[:,1], y_ref)
-        RMSE_Y = math.sqrt(MSE_Y)
-        print("RMSE for Position-Y: ", RMSE_Y)
-        #print("MAE for Position-Y: ", mean_absolute_error(Quadcopter.posLogs[:,1].flatten(), y_ref.flatten()))
-        
-        z_ref = np.full(Quadcopter.posLogs.shape[0], PositionRef[2])
-        MSE_Z = mean_squared_error(Quadcopter.posLogs[:,2], z_ref)
-        RMSE_Z = math.sqrt(MSE_Z)
-        print("RMSE for Position-Z: ", RMSE_Z)
-        #print("MAE for Position-Z: ", mean_absolute_error(Quadcopter.posLogs[:,2].flatten(), z_ref.flatten()))
+        reporting(Quadcopter.Time, Quadcopter.posLogs, PositionRef, DEBUG, Quadcopter.experiment)
         ani.event_source.stop()
         plt.close('all')
-        if DEBUG:
-            pass
-        else:
-            df = pd.DataFrame(Quadcopter.posLogs)
-            df.to_excel('./data/dataSMCnormal.xlsx')
 
     return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
   
 ani = animation.FuncAnimation(fig, update_point, interval=25, blit=True, repeat=False)
 plt.show()
 
+
 # Post-Simulation Graph
-plot_post_simulation(Quadcopter.timeLogs, Quadcopter.posLogs, Quadcopter.ULogs, Quadcopter.SlidingSurface)
+plot_post_simulation(Quadcopter.timeLogs, Quadcopter.posLogs, Quadcopter.errorxyz ,Quadcopter.ULogs, Quadcopter.SlidingSurface, PositionRef, DEBUG, Quadcopter.experiment)
 plt.close()

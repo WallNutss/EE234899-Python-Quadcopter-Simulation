@@ -79,8 +79,6 @@ class DydrenWind:
 
         return np.hstack((np.array(y1_f).reshape(5001,1), np.array(y2_f).reshape(5001,1), np.array(y3_f).reshape(5001,1)))
 
-
-
 # dydren = DydrenWind()
 # wind = dydren.Model()
 # # print(wind[1,:])
@@ -99,6 +97,8 @@ class DydrenWind:
 # plt.ylabel('along-wind in m/s (P)')
 # plt.xlabel('time in seconds')
 # plt.grid(True)
+# plt.title('Along-wind Dydren Wind Disturbance Model')
+# plt.savefig('./data/along-wind.png')
 
 # #plots for cross-wind velocities generated using Python
 # plt.figure(2)
@@ -108,6 +108,8 @@ class DydrenWind:
 # plt.ylabel('cross-wind in m/s (P)')
 # plt.xlabel('time in seconds')
 # plt.grid(True)
+# plt.title('Cross-wind Dydren Wind Disturbance Model')
+# plt.savefig('./data/cross-wind.png')
 
 # #plots for vertical-wind velocities generated using Python
 # plt.figure(3)
@@ -117,6 +119,8 @@ class DydrenWind:
 # plt.ylabel('vertical-wind in m/s (P)')
 # plt.xlabel('time in seconds')
 # plt.grid(True)
+# plt.title('Vertical-wind Dydren Wind Disturbance Model')
+# plt.savefig('./data/vertical-wind.png')
 
 # # Show all plots
 # plt.show()
