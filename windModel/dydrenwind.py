@@ -4,16 +4,16 @@ from scipy import signal
 import matplotlib.pyplot as plt
 
 class DydrenWind:
-    def __init__(self):
+    def __init__(self, **kwargs):
         # Time Information
         self.Time = 100
         self.dt   = 0.02
         self.timesamples = np.arange(0, self.Time + self.dt, self.dt)
 
         # Information basic for Dydren Wind Disturbance Model
-        self.height         = 6.076         # m  ,  the height of the aircraft
-        self.airspeed       = 2             # m/s,  the speed wind disturbance we want, make sure it's not over the limit what the drone can do
-        self.turbulancelvl  = 15 * 0.514444 # Knots to m/s
+        self.height         = kwargs['height']         # m  ,  the height of the aircraft
+        self.airspeed       = kwargs['airspeed']             # m/s,  the speed wind disturbance we want, make sure it's not over the limit what the drone can do
+        self.turbulancelvl  = kwargs['turbulancelvl'] * 0.514444 # Knots to m/s
         
         # Generate white gaussian noise 
         self.mean            = 0
@@ -49,7 +49,7 @@ class DydrenWind:
         return H_v
     
     def Model(self):
-        # the random number seed used same as from SIMULINK blockset
+        # the random number seed used same as from SIMULINK blockset, YEAH MATLAB RULES!
         np.random.seed(23341)
         samples1 = 10*np.random.normal(self.mean, self.std, size= self.timesamples.shape[0])
 

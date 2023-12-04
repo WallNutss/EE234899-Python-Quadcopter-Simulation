@@ -102,7 +102,7 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
     b3 = 1/inertia[2][2]
 
     if control == 1: # Conventional SMC with Sign Switching Function
-        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        slidingsurface = angle_error_dot + np.matmul(lamda, angle_error)
         # Roll Control
         U_2 = (1/b1)*( K[0][0]*np.sign(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
         # Pitch Control
@@ -113,7 +113,7 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
         smctype = 'Conventional SMC with Sign Switching Function'
 
     elif control == 2: # Conventional SMC but with Saturation Switching Function
-        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        slidingsurface = angle_error_dot + np.matmul(lamda, angle_error)
         # Roll Control
         U_2 = (1/b1)*( K[0][0]*sat(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
         # Pitch Control
@@ -124,7 +124,7 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
         smctype = 'Conventional SMC but with Saturation Switching Function'
 
     elif control == 3: # Conventional SMC but with Tanh Switching Function
-        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        slidingsurface = angle_error_dot + np.matmul(lamda, angle_error)
         # Roll Control
         U_2 = (1/b1)*( K[0][0]*tanh(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] )
         # Pitch Control
@@ -136,7 +136,7 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
         
 
     elif control == 4: # Integral Sliding Mode Control with Modified Tanh Switching Function
-        slidingsurface = angle_error_dot + lamda.dot(angle_error) + lamda2.dot(integral_angle_error)
+        slidingsurface = angle_error_dot + np.matmul(lamda, angle_error) +  np.matmul(lamda2, integral_angle_error)
         # Roll Control
         U_2 = (1/b1)*( K[0][0]*tanh(slidingsurface[0]) - a1*angles_dot[1]*angles_dot[2] + lamda[0][0]*angle_error_dot[0] + lamda2[0][0]*angle_error[0])
         # Pitch Control
@@ -147,7 +147,7 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
         smctype = 'Integral Sliding Mode Control with Modified Tanh Switching Function' 
 
     elif control == 5: # Control method from Adapthi GOD paper with modified adding sliding value to switching function
-        slidingsurface = angle_error_dot + lamda.dot(angle_error)
+        slidingsurface = angle_error_dot + np.matmul(lamda, angle_error)
         # Roll Control
         U_2 = (1/b1)*( K[0][0]*sat(slidingsurface[0]) + K_2[0][0]*slidingsurface[0] - a1*angles_dot[1]*angles_dot[2] - lamda[0][0]*angle_error_dot[0] )
         # Pitch Control
@@ -160,12 +160,11 @@ def SMC(inertia, angle_error, angles_dot, angle_error_dot, integral_angle_error,
     '''
     Messsage corner
 
-    Haha goblok, sekarang pas b1nya kubaikin sesuai dinamika punyaku, sekarang fungsi saturasinya yang nggak working, tapi signnya working
-    Hadeh
+    Haha idiot, now when I fix the b1 according to my dynamics, now the saturation function is not working, but the sign function is working. Hadeh (Indonesia Moment Euy)
 
     What's working
-    1. Saat u_switch = -Ksgn(s), bisa bekerja dengan baik jika b1,b2,b3 penyebutnya == 1 bukan l
-    2. Saat u_switch = -Ksat(s), bisa bekejra dengan baik jika b1,b2,b3 penyebutnya == l bukan 1
+    1. When u_switch = -Ksgn(s), it can work well if b1,b2,b3 denominators == 1, not l
+    2. When u_switch = -Ksat(s), it works well if b1,b2,b3 denominator == l, not 1.
 
     '''
     U_SMC = np.array([U_2,U_3,U_4]).reshape(3,1)

@@ -19,20 +19,19 @@ from lib.trajectoryGenerator import WaypointGenerator
 from lib.plotting import plot_post_simulation
 from lib.plotting import reporting
 
-
 # Body Frame Location for Transformation Matrix Preparation
-            # Position Motor1  Motor2 Motor3  Motor4, MoC , LoS
+            # Position Motor1  Motor2 Motor3  Motor4, MoC , LoS(Line of Sight)
 drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
                        [0.042 , 0.042,-0.042, -0.042, 0.0, 0.042],  # Y Postion
                        [    0 ,     0,     0,      0, 0.0,   0.0],  # Z Position
                        [     1,     1,     1,      1,   1,     1]]) # Adder
 
 # 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
-# Maybe the breaks caused by the simple
+# Maybe the breaks caused by the simple calculation. I still can't find the easiest and effiecient way to calculate the Dynamics system except using Euler Integration Method
 
 DEBUG = False
-experiment_name = 'SMC_Tripathi-Disturbance'
-Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=5)
+experiment_name = 'SMC_Based_Tripathi-Disturbance'
+Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=5, DISTURBANCE = True)
 
 waypoints = WaypointGenerator().trajectory(state=1)
 
@@ -53,7 +52,7 @@ add = np.array([0, 0, 0, 1])
 wHb = np.vstack((np.hstack((R, Quadcopter.initPosition)),add))
 
 # This is the transformation matrixs implemented on drone body
-drone_world = np.dot(wHb, drone_body)
+drone_world = np.matmul(wHb, drone_body)
 
 # Just taking the neccessary information
 drone_altitude = drone_world[:3,:]
@@ -100,9 +99,9 @@ psi_ref     = D2R(0)
 
 AngleRef = np.array([phi_ref, theta_ref, psi_ref])
 
-x_des       = -0.8
-y_des       = -0.8
-z_des       = 4.3
+x_des       = 1
+y_des       = 1
+z_des       = 4
 
 PositionRef = np.array([x_des, y_des, z_des])
 # Random Position
@@ -267,7 +266,7 @@ def update_point(n):
         wHb = np.vstack((np.hstack((R, states[0:3])),add))
 
         # This is the transformation matrixs implemented on drone body
-        drone_world = np.dot(wHb, drone_body)
+        drone_world = np.matmul(wHb, drone_body)
 
         # Just taking the neccessary information
         drone_altitude = drone_world[:3,:]
@@ -325,7 +324,7 @@ def update_point(n):
     # TO close the simulation and extract the data
     if keyboard.is_pressed('esc') or Quadcopter.Time > 50:
         print("Simulation Done, Result Print")
-        reporting(Quadcopter.Time, Quadcopter.posLogs, PositionRef, DEBUG, Quadcopter.experiment)
+        reporting(Quadcopter.Time, Quadcopter.timeLogs, Quadcopter.posLogs, Quadcopter.angleLogs, Quadcopter.ULogs, Quadcopter.errorxyz, Quadcopter.SlidingSurface, PositionRef, DEBUG, Quadcopter.experiment, Quadcopter.controller)
         ani.event_source.stop()
         plt.close('all')
 

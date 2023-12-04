@@ -33,7 +33,7 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
     figpos, axpos = plt.subplots(3, 1)
     axpos[0].plot(time_logs, pos_logs[:, 0], 'g',label="Position Data x-axis")
     axpos[0].set_ylabel('X Position(m)')
-    x = np.arange(0, 50.2, 0.02)
+    x = np.arange(0, time_logs[-1], time_logs[1]-time_logs[0])
     y = np.full_like(x, position_ref[0])
     axpos[0].plot(x,y, '--r')
     axpos[0].legend()
@@ -42,7 +42,7 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
 
     axpos[1].plot(time_logs, pos_logs[:, 1], 'r',label="Position Data y-axis")
     axpos[1].set_ylabel('Y Position(m)')
-    x = np.arange(0, 50.2, 0.02)
+    x = np.arange(0, time_logs[-1], time_logs[1]-time_logs[0])
     y = np.full_like(x, position_ref[1])
     axpos[1].plot(x,y, '--r')
     axpos[1].legend()
@@ -51,12 +51,13 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
     axpos[2].plot(time_logs, pos_logs[:, 2], 'm',label="Position Data z-axis")
     axpos[2].set_xlabel('Time(s)')
     axpos[2].set_ylabel('Z Position(m)')
-    x = np.arange(0, 50.2, 0.02)
+    x = np.arange(0, time_logs[-1], time_logs[1]-time_logs[0])
     y = np.full_like(x, position_ref[2])
     axpos[2].plot(x,y, '--r')
     axpos[2].legend()
     axpos[2].grid(linestyle='--')
 
+    figpos.tight_layout()
     figpos.align_labels()
     figpos.subplots_adjust(wspace=0.2, hspace=0.4)
     #figpos.suptitle("Position of the Quadcopter")
@@ -95,9 +96,11 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
     axe.plot(time_logs, pos_error_logs[:,2], '-.m', label="error z-axis")
     axe.grid(linestyle='--')
     axe.legend()
-    axe.set_ylabel("Position Error") 
+    axe.set_ylabel("Position Error(m)") 
     axe.set_xlabel("Time(s)") 
-    axe.set_title("Position Controller Task") 
+    axe.set_title("Position Controller Task",  fontweight="bold") 
+    figerr.tight_layout()
+
 
     if DEBUG:
         pass
@@ -109,11 +112,12 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
         figpos.savefig(f'./data/plot/{experiment}-positionlogs.png')    
         figu.savefig(f'./data/plot/{experiment}-controllogs.png') 
         figerr.savefig(f'./data/plot/{experiment}-errorplots.png')
+        print('Saved')
 
     plt.show()
 
 
-def reporting(Last_time, pos_logs, pos_ref, DEBUG, experiment):
+def reporting(Last_time, time_logs, pos_logs, angle_logs, u_logs, error_logs, ss_logs, pos_ref, DEBUG, experiment, controller):
         x_ref = np.full(pos_logs.shape[0], pos_ref[0])
         MSE_X = mean_squared_error(pos_logs[:,0].flatten(), x_ref.flatten())
         RMSE_X = math.sqrt(MSE_X)
@@ -138,7 +142,14 @@ def reporting(Last_time, pos_logs, pos_ref, DEBUG, experiment):
             # np.savetxt(f'./data/results/{experiment}-RMSE.txt', combine, fmt='%s', delimiter='=', header=f'Test taken at: {datetime.now()}\nExperiment = {experiment}\nSimulation Time = {round(Last_time,3)}s\n')
 
         else:
-            df = pd.DataFrame(pos_logs)
+            time_logs = time_logs.reshape(-1, 1)
+            if controller == 0:
+                data = np.hstack((time_logs, pos_logs, angle_logs, u_logs, error_logs))
+                df = pd.DataFrame(data, columns=['time', 'X', 'Y', 'Z', 'Phi', 'Theta', 'Psi', 'U1', 'U2', 'U3', 'U4', 'Error x-axis', 'Error y-axis', 'Error z-axis'])
+            else:
+                data = np.hstack((time_logs, pos_logs, angle_logs, u_logs, ss_logs, error_logs))
+                df = pd.DataFrame(data, columns=['time', 'X', 'Y', 'Z', 'Phi', 'Theta', 'Psi', 'U1', 'U2', 'U3', 'U4', 'ss-phi', 'ss-theta', 'ss-psi','Error x-axis', 'Error y-axis', 'Error z-axis'])
+            
             df.to_excel(f'./data/datalogs/data-{experiment}.xlsx')
             print("dumping the data into one files using numpy ")
 

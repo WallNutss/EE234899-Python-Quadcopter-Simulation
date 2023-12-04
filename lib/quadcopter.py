@@ -105,9 +105,9 @@ class quadcopter:
         self.SlidingSurface = np.array([0.0, 0.0, 0.0])
 
         # Wind Turbulance for Uncentainties and etc
-        self.wind = DydrenWind().Model()
-        self.DISTURBANCE = True
-        self.iter = 0
+        self.wind = DydrenWind(height=6.076, airspeed=2, turbulancelvl=15).Model()
+        self.DISTURBANCE = kwargs['DISTURBANCE']
+        self.iter = 0 # it's for local counting for inserting wind disturbance value
         self.PID = True
         self.experiment = experiment
         self.controller = kwargs['controller']
@@ -147,15 +147,15 @@ class quadcopter:
 
         # Calculation of Dynamics Translation Motion of the Drone which is the Acceleration of the Model
         self.dstate[3:6] = (- self.g * np.array([0.0, 0.0, 1.0]).reshape(3,1)) + \
-                           ( (1/self.m) * np.dot(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1))) - \
+                           ( (1/self.m) * np.matmul(R, self.Thrust * np.array([0.0, 0.0, 1.0]).reshape(3,1))) - \
                             ((1/self.m) * np.array([self.ktd * self.dstate[0], self.ktd * self.dstate[1], self.ktd * self.dstate[2]]).reshape(3,1))
 
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame)
-        self.dstate[6:9] = np.dot(SpecialR(self.state[6:9]), self.state[9:12])
+        self.dstate[6:9] = np.matmul(SpecialR(self.state[6:9]), self.state[9:12])
 
         # Calculation of Rotational Motion of the Drone (Body Frame) which is the Acceleration of the Model
-        Iw = np.dot(self.Inert, self.state[9:12])
-        self.dstate[9:12] = np.dot((np.linalg.inv(self.Inert)), (self.M -\
+        Iw = np.matmul(self.Inert, self.state[9:12])
+        self.dstate[9:12] = np.matmul((np.linalg.inv(self.Inert)), (self.M -\
                                                                  np.cross(self.state[9:12][:,0], Iw[:,0]).reshape(3,1) +\
                                                                  np.array([self.kad * (self.dstate[6]), self.kad * (self.dstate[7]), self.kad * (self.dstate[8])]).reshape(3,1)))
 
@@ -205,7 +205,6 @@ class quadcopter:
         self.angleLogs = np.vstack((self.angleLogs, np.array([R2D(self.angles[0][0]),R2D(self.angles[1][0]) ,R2D(self.angles[2][0])])))
         self.posLogs   = np.vstack((self.posLogs, self.r.flatten()))
         self.ULogs     = np.vstack((self.ULogs, self.U.flatten()))
-        # Logs
         self.errorxyz = np.vstack((self.errorxyz, np.array([self.x_err, self.y_err, self.z_err]).flatten()))
 
     def positionController(self, Reference):
@@ -240,7 +239,7 @@ class quadcopter:
         # I know this will fucked me up later, but I still don't know the cause why
         # When I put - sign in all desired angles, it will work
         # EDIT : Fuck Fuck Fuck, When you put Ux and Uy on the negative side, it all make sense when I dont put - sign in angles desired
-        # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside
+        # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside. As long it works I don't mind know, the due is in two weeks again :)
         if self.psi_des < pi/4 or self.psi_des > 3*pi/4:
             self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
         else:
@@ -269,7 +268,7 @@ class quadcopter:
         self.z_err_sum = self.z_err_sum + self.z_err
 
 
-    def positionSMCController(self, Reference):
+    def positionSMCController(self, Reference): # In Development
         #Getting the measurement first, this is on Inertial Frame {EF}
         x_pos = self.state[0]
         y_pos = self.state[1]
@@ -316,7 +315,7 @@ class quadcopter:
         integral_angle_error = np.array([self.phi_err_sum, self.theta_err_sum, self.psi_err_sum]).reshape(3,1)
 
         # Calculation from the Special Transfer Matrix for Angular Rates (This make conversion from Body Frame to Inertial Frame), this is angulare rates on Inertial Frame Perspective
-        angles_dot = np.dot(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
+        angles_dot = np.matmul(SpecialR(self.state[6:9]), self.state[9:12]) # Kecepatan perubahan sudut di euler angles ({EF})
 
         if self.controller == 0: # PID Controller
             # U2
