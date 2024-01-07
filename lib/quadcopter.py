@@ -137,7 +137,7 @@ class quadcopter:
 
         #Derivative State 1 to 3, the velocity, because past state define the future state,in this function all the disturbance wether its internal of external is put down here
         if self.DISTURBANCE:
-            if self.Time > 10:
+            if self.Time > 0:
                 try:
                     self.dstate[0:3] = self.state[3:6] + self.wind[self.iter,:].reshape(3,1)
                 except:
@@ -379,11 +379,11 @@ class quadcopter:
 
         if self.controller == 0: # PID Controller
             # U2
-            self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.2]))
+            self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.4]))
             # U3
-            self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.4, 0.03, 0.3]))
+            self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.3, 0.03, 0.4]))
             # U4
-            self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.2, 0.01, 0.4]))
+            self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.3, 0.03, 0.4]))
 
         elif self.controller == 1: # Sliding Mode Controller
             # Defining Control Equation for SMC Controller

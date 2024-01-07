@@ -118,20 +118,22 @@ def plot_post_simulation(time_logs, pos_logs, pos_error_logs, u_logs, sliding_su
 
 
 def reporting(Last_time, time_logs, pos_logs, angle_logs, u_logs, error_logs, ss_logs, pos_ref, DEBUG, experiment, controller):
+        from sklearn.metrics import mean_squared_error,mean_absolute_error
+        
         x_ref = np.full(error_logs.shape[0], 0)
-        MSE_X = mean_squared_error(error_logs[:,0].flatten(), x_ref.flatten())
+        MSE_X = mean_squared_error(x_ref.flatten(),error_logs[:,0].flatten())
         RMSE_X = math.sqrt(MSE_X)
         print("RMSE for Position-X: ", RMSE_X)
         #print("MAE for Position-X: ", mean_absolute_error(Quadcopter.posLogs[:,0].flatten(), x_ref.flatten()))
 
         y_ref = np.full(error_logs.shape[0], 0)
-        MSE_Y = mean_squared_error(error_logs[:,1], y_ref)
+        MSE_Y = mean_squared_error(y_ref.flatten(),error_logs[:,1].flatten())
         RMSE_Y = math.sqrt(MSE_Y)
         print("RMSE for Position-Y: ", RMSE_Y)
         #print("MAE for Position-Y: ", mean_absolute_error(Quadcopter.posLogs[:,1].flatten(), y_ref.flatten()))
         
         z_ref = np.full(error_logs.shape[0], 0)
-        MSE_Z = mean_squared_error(error_logs[:,2], z_ref)
+        MSE_Z = mean_squared_error(z_ref.flatten(),error_logs[:,2].flatten())
         RMSE_Z = math.sqrt(MSE_Z)
         print("RMSE for Position-Z: ", RMSE_Z)
         #print("MAE for Position-Z: ", mean_absolute_error(Quadcopter.posLogs[:,2].flatten(), z_ref.flatten()))

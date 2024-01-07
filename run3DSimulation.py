@@ -29,9 +29,10 @@ drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
 # 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
 # Maybe the breaks caused by the simple calculation. I still can't find the easiest and effiecient way to calculate the Dynamics system except using Euler Integration Method
 
-DEBUG = False
-experiment_name = 'SMC_Based_Tripathi-Disturbance'
-Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=5, DISTURBANCE = True)
+DEBUG = True
+DISTURBANCE = False
+experiment_name = 'SMC_Tripathi-Disturbance'
+Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=0, smctype=5, DISTURBANCE = DISTURBANCE)
 
 waypoints = WaypointGenerator().trajectory(state=1)
 
@@ -42,7 +43,7 @@ ax = fig.add_subplot(111, projection='3d')
 state_display = ax.text2D(0.17, 0.90, "green" ,color='green', transform=ax.transAxes)
 time_display = ax.text2D(0.17, 0.85, "red" ,color='red', transform=ax.transAxes)
 
-# Rotation Matrix, when Phi=Psi==0, Theta=20, In X Configuration shape, + sign mean that the drone will move backward, event though I dont know which forward or backward when in simulation. If academia cares about my undergraduate thesis, they should pay attention more to the student who is strugling, which in case they didn't yeah so fuck it its really long comment btw, wanna hang out?
+# Rotation Matrix, when Phi=Psi==0, Theta=20, In X Configuration shape, + sign mean that the drone will move backward, event though I dont know which forward or backward when in simulation. If academia really cares about my undergraduate thesis, they should pay attention more to the student who is strugling, which in case they didn't yeah so fuck it its really long comment btw, wanna hang out?
 angles = np.array([D2R(0), D2R(0), D2R(0)])
 R = RPY2XYZ(angles).transpose()
 
@@ -135,7 +136,7 @@ ax2[1].grid()
 
 zLogs, = ax2[2].plot([],[], 'm',lw=2, label="Position z-axis [m]")
 ax2[2].set_xlim(0, 50)
-ax2[2].set_ylim(3, 5)
+ax2[2].set_ylim(0, 15)
 ax2[2].set_xlabel('Time(s)')
 ax2[2].set_ylabel('Z(m)')
 ax2[2].legend()
