@@ -231,92 +231,41 @@ class quadcopter:
         pos_error_dot = np.array([(self.x_err - self.x_err_prev)/self.Ts, (self.y_err - self.y_err_prev)/self.Ts, (self.z_err - self.z_err_prev)/self.Ts]).reshape(3,1)
         integral_pos_error = np.array([self.x_err_sum, self.y_err_sum, self.z_err_sum]).reshape(3,1)
 
-        if True:
-            # Feedback Linearization Start / Is this even Feedback Linearization lmao
-            ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.6, 0.0, -0.25]))
-            uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.6, 0.0,-0.25]))
-            uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-0.6, 0.0,-0.5]))
+        # Feedback Linearization Start / Is this even Feedback Linearization lmao
+        ux = PID(self.Ts, self.x_err, self.x_err_prev, self.x_err_sum, gains=np.array([-0.6, 0.0, -0.25]))
+        uy = PID(self.Ts, self.y_err, self.y_err_prev, self.y_err_sum, gains=np.array([-0.6, 0.0,-0.25]))
+        uz = PID(self.Ts, self.z_err, self.z_err_prev, self.z_err_sum, gains=np.array([-0.6, 0.0,-0.5]))
 
-            # Control to Desired Angle Conversion
-            # ux, uy, uz equals to double derivative of the error itself
-            # Desired Phi
-            a = (ux)/(uz + self.g)
-            b = (uy)/(uz + self.g)
-            c = cos(self.psi_des)
-            d = sin(self.psi_des)
+        # Control to Desired Angle Conversion
+        # ux, uy, uz equals to double derivative of the error itself
+        # Desired Phi
+        a = (ux)/(uz + self.g)
+        b = (uy)/(uz + self.g)
+        c = cos(self.psi_des)
+        d = sin(self.psi_des)
 
-            # I know this will fucked me up later, but I still don't know the cause why
-            # When I put - sign in all desired angles, it will work
-            # EDIT : Fuck Fuck Fuck, When you put Ux and Uy on the negative side, it all make sense when I dont put - sign in angles desired
-            # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside. As long it works I don't mind know, the due is in two weeks again :)
-            if self.psi_des < pi/4 or self.psi_des > 3*pi/4:
-                self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
-            else:
-                self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
-
-            #Desired Theta
-            self.theta_des = atan(a*c + b*d)
-            #self.theta_des =  atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
-            #                    ((-uy*sin(self.state[8]))/(-uz+self.g)))
-
-            # Anti Windup
-            self.phi_des = antiWindup(self.phi_des, D2R(-45), D2R(45))
-            self.theta_des = antiWindup(self.theta_des, D2R(-45), D2R(45))
-
-
-            self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
-            # self.U[0] = (self.m * (-uz + self.g)) --> LOL, this algorithm is also working. At this point Idk what is right and what is wrong anymore
+        # I know this will fucked me up later, but I still don't know the cause why
+        # When I put - sign in all desired angles, it will work
+        # EDIT : Fuck Fuck Fuck, When you put Ux and Uy on the negative side, it all make sense when I dont put - sign in angles desired
+        # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside. As long it works I don't mind know, the due is in two weeks again :)
+        if self.psi_des < pi/4 or self.psi_des > 3*pi/4:
+            self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
         else:
-            lamba = np.array([0.27,      0,    0, \
-                                 0,     0.27,    0, \
-                                 0,      0,   0.8]).reshape(3,3)
-            K = np.array([0.9,      0,    0, \
-                            0,     0.9,    0, \
-                            0,      0,    0.9]).reshape(3,3)
-            lamba2 = np.array([ 0.1,      0,    0, \
-                                0,     0.1,    0, \
-                                0,      0,    0.1]).reshape(3,3)
-                        
-            # Sliding surface for all xyz motion
-            sliding_surface = pos_error_dot + np.matmul(lamba, pos_error)
-            self.U[0] = (self.m * (K[2][2]* tanh(sliding_surface[2]) + self.g + lamba[2][2]*(pos_error_dot[2]) + lamba2[2][2]* pos_error[2]))/(cos(self.state[6])*cos(self.state[7])) # Should be correct now
-            
-            # print(self.U[0])
-            ux = -(self.m * (K[0][0]* tanh(sliding_surface[0]) + lamba[0][0]*(pos_error_dot[0])))/self.U[0]
-            uy = -(self.m * (K[1][1]* tanh(sliding_surface[1]) + lamba[1][1]*(pos_error_dot[1])))/self.U[0]
-            uz = K[2][2]* tanh(sliding_surface[2]) + lamba[2][2]*(pos_error_dot[2])
+            self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
 
-            # Control to Desired Angle Conversion
-            # ux, uy, uz equals to double derivative of the error itself
-            # Desired Phi
-            # a = (ux)/(uz + self.g)
-            # b = (uy)/(uz + self.g)
-            # c = cos(self.psi_des)
-            # d = sin(self.psi_des)
+        #Desired Theta
+        self.theta_des = atan(a*c + b*d)
+        #self.theta_des =  atan(((-ux*cos(self.state[8]))/(-uz+self.g))+\
+        #                    ((-uy*sin(self.state[8]))/(-uz+self.g)))
 
-            # # I know this will fucked me up later, but I still don't know the cause why
-            # # When I put - sign in all desired angles, it will work
-            # # EDIT : Fuck Fuck Fuck, When you put Ux and Uy on the negative side, it all make sense when I dont put - sign in angles desired
-            # # MORE EDIT : I Forgot why I didnt put the - sign in a,b. It does make sense weeks ago, oh well tehe, guess keep it inside. As long it works I don't mind know, the due is in two weeks again :)
-            # if self.psi_des < pi/4 or self.psi_des > 3*pi/4:
-            #     self.phi_des = atan((cos(self.state[7])*(tan(self.state[7])*d - b))/(c))
-            # else:
-            #     self.phi_des = atan((cos(self.state[7])*(a - tan(self.state[7])*c))/(d))
+        # Anti Windup
+        self.phi_des = antiWindup(self.phi_des, D2R(-45), D2R(45))
+        self.theta_des = antiWindup(self.theta_des, D2R(-45), D2R(45))
 
-            # #Desired Theta
-            # self.theta_des = atan(a*c + b*d)
 
-            #Convert them to angle desired
-            matrik = np.linalg.pinv(np.array([sin(self.psi_des), cos(self.psi_des), -cos(self.psi_des), sin(self.psi_des)]).reshape(2,2))
-            motionxy = np.matmul(matrik, np.array([ux,uy]).reshape(2,1))
-
-            self.phi_des = -motionxy[1]
-            self.theta_des = motionxy[0]
-
-            # Anti Windup
-            self.phi_des = antiWindup(self.phi_des, D2R(-45), D2R(45))
-            self.theta_des = antiWindup(self.theta_des, D2R(-45), D2R(45))
-            
+        self.U[0] = (self.m * (-uz + self.g))/(cos(self.state[6])*cos(self.state[7]))
+        # self.U[0] = (self.m * (-uz + self.g)) --> LOL, this algorithm is also working. At this point Idk what is right and what is wrong anymore
+    
         # Updating Error Value
         self.x_err_prev = self.x_err
         self.x_err_sum = self.x_err_sum + self.x_err
@@ -327,23 +276,6 @@ class quadcopter:
         self.z_err_prev = self.z_err
         self.z_err_sum = self.z_err_sum + self.z_err
 
-
-    def positionSMCController(self, Reference): # In Development
-        #Getting the measurement first, this is on Inertial Frame {EF}
-        x_pos = self.state[0]
-        y_pos = self.state[1]
-        z_pos = self.state[2]
-
-        #Getting the Reference,also on Inertial Frame {EF}
-        self.x_des = Reference[0]
-        self.y_des = Reference[1]
-        self.z_des = Reference[2]
-
-        # Getting the error from reference - measurement
-        self.x_err = self.x_des - x_pos
-        self.y_err = self.y_des - y_pos
-        self.z_err = self.z_des - z_pos
-        pass
 
     def attitudeController(self):
         """
@@ -379,11 +311,11 @@ class quadcopter:
 
         if self.controller == 0: # PID Controller
             # U2
-            self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.02, 0.4]))
+            self.U[1] = PID(self.Ts, self.phi_err, self.phi_err_prev, self.phi_err_sum, gains=np.array([1.3, 0.03, 0.3]))
             # U3
-            self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.3, 0.03, 0.4]))
+            self.U[2] = PID(self.Ts, self.theta_err, self.theta_err_prev, self.theta_err_sum, gains=np.array([1.3, 0.03, 0.3]))
             # U4
-            self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.3, 0.03, 0.4]))
+            self.U[3] = PID(self.Ts, self.psi_err, self.psi_err_prev, self.psi_err_sum, gains=np.array([1.3, 0.03, 0.3]))
 
         elif self.controller == 1: # Sliding Mode Controller
             # Defining Control Equation for SMC Controller
@@ -418,47 +350,6 @@ class quadcopter:
         self.phi_des_prev = self.phi_des
         self.theta_des_prev = self.theta_des
         self.psi_des_prev = self.psi_des
-
-        # Updating Control Blocks
-        self.Thrust = self.U[0]
-        self.M = self.U[1:4]
-
-
-    def attitudeLQRController(self):
-        #Getting the measurement first
-        phi = self.state[6]
-        theta = self.state[7]
-        psi = self.state[8]
-
-        # Getting the error from reference - measurement
-        self.phi_err = self.phi_des - phi
-        self.theta_err = self.theta_des - theta
-        self.psi_err = self.psi_des - psi
-
-        angle_error = np.array([self.phi_err, self.theta_err, self.psi_err]).reshape(3,1)
-
-        K = LQR()
-        # K here if correct by matemathically returns a 3x6 matrixs for 𝜑,𝜃,𝜓 p,q,r. I dont really needed the p,q,r, so I just should just take the euler angle gains
-        gains = K[:,0:3]
-        U = gains*angle_error
-
-        # U2_Equation
-        self.U[1] = U[0]
-        # U3_Equation
-        self.U[2] = U[1]
-        # U4_Equation
-        self.U[3] = U[2]
-
-        # Anti Windup
-        self.U[0] = antiWindup(self.U[0], self.u1_min, self.u1_max)
-        self.U[1] = antiWindup(self.U[1], self.u2_min, self.u2_max)
-        self.U[2] = antiWindup(self.U[2], self.u3_min, self.u3_max)
-        self.U[3] = antiWindup(self.U[3], self.u4_min, self.u4_max)
-
-        # Updating Error Value
-        self.phi_err_prev = self.phi_err
-        self.theta_err_prev = self.theta_err
-        self.psi_err_prev = self.psi_err
 
         # Updating Control Blocks
         self.Thrust = self.U[0]

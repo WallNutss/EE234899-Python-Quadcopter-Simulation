@@ -29,10 +29,10 @@ drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
 # 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
 # Maybe the breaks caused by the simple calculation. I still can't find the easiest and effiecient way to calculate the Dynamics system except using Euler Integration Method
 
-DEBUG = True
+DEBUG = False
 DISTURBANCE = False
-experiment_name = 'SMC_Tripathi-Disturbance'
-Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=0, smctype=5, DISTURBANCE = DISTURBANCE)
+experiment_name = '[Lampiran]_SMC_Tanh-Lambda5K1'
+Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=3, DISTURBANCE = DISTURBANCE)
 
 waypoints = WaypointGenerator().trajectory(state=1)
 
@@ -85,13 +85,13 @@ ax.set_xlabel('X [m]')
 ax.set_ylabel('Y [m]')
 ax.set_zlabel('Z [m]')
 
-ax.xaxis.set_major_locator(MultipleLocator(5))
-ax.yaxis.set_major_locator(MultipleLocator(5))
+# ax.xaxis.set_major_locator(MultipleLocator(5))
+# ax.yaxis.set_major_locator(MultipleLocator(5))
 ax.zaxis.set_major_locator(MultipleLocator(1))
 
 # Set plot limits
-ax.set_xlim(-1.5, 1)
-ax.set_ylim(-1.5, 1)
+ax.set_xlim(-1.5, 1.2)
+ax.set_ylim(-1.5, 1.2)
 ax.set_zlim(0, 5)
 
 phi_ref     = D2R(0)
@@ -136,7 +136,7 @@ ax2[1].grid()
 
 zLogs, = ax2[2].plot([],[], 'm',lw=2, label="Position z-axis [m]")
 ax2[2].set_xlim(0, 50)
-ax2[2].set_ylim(0, 15)
+ax2[2].set_ylim(0, 5)
 ax2[2].set_xlabel('Time(s)')
 ax2[2].set_ylabel('Z(m)')
 ax2[2].legend()
@@ -246,7 +246,7 @@ def update_point(n):
     Quadcopter.DynamicSolver()
     # Planner for Yaw Reference
     #Quadcopter.psi_des = antiWindup(math.atan2(PositionRef[1] - Quadcopter.state[1], PositionRef[0] - Quadcopter.state[0]), -0.99, 0.99)
-    Quadcopter.psi_des = 0
+    Quadcopter.psi_des = 0.0
     # Quadcopter for Position Controller, Where Outer Loop will
     Quadcopter.positionController(PositionRef)
 
@@ -329,7 +329,7 @@ def update_point(n):
         ani.event_source.stop()
         plt.close('all')
 
-    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, Ref, phiLogs, thetaLogs, psiLogs
+    return motor13, motor24, los, state_display, time_display, xLogs, yLogs, zLogs, U1Logs, U2Logs, U3Logs, U4Logs, phiLogs, thetaLogs, psiLogs
   
 ani = animation.FuncAnimation(fig, update_point, interval=25, blit=True, repeat=False)
 plt.show()
