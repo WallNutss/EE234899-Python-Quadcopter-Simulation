@@ -60,8 +60,14 @@ In this simulation, as I spoken before I divided the controller to Position Cont
 * Implement an obstacle avoidance algorithm such as Artificial Potential Field etc
 * Develop automatic method to find optimal gains for best response. I hate parameter tuning
 
+## Gif Gallery
+<p align="center">
+  <img src="doc/quad_simulation.gif" width="49%" />
+  <img src="doc/quad_disturbance.gif" width="49%" />
+  <img src="doc/quad_multiplewaypoints.gif" width="49%" />
+</p>
+
 ## Contact
 Muhammad Juniarto
-
 Email: wallnuts73@gmail.com
 
