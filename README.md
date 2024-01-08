@@ -2,7 +2,7 @@
 A Quadcopter simulation with 3D Plot Animation using matplotlib python package.  It contains a basic quadcopter dynamics model, hover controller, waypoint position control, and visualisation toolkit using matplotlib animation.
 
 <p align="center">
-  <img width="900" height="450" src="doc/quad_simulation.gif">
+  <img width="59%"src="doc/quad_simulation.gif">
 </p>
 
 ## Motivation
