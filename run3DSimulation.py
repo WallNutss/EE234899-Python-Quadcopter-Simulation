@@ -29,10 +29,10 @@ drone_body = np.array([[-0.042, 0.042, 0.042, -0.042, 0.0,   0.0],  # X Position
 # 0.02 s is the best sampling in the simulation, feel free to try :). It breaks thou if you throw it beyond 0.1s. Cause sampling matters in this simulation where I update my state through simple euler derivation method
 # Maybe the breaks caused by the simple calculation. I still can't find the easiest and effiecient way to calculate the Dynamics system except using Euler Integration Method
 
-DEBUG = False
+DEBUG = True
 DISTURBANCE = False
 experiment_name = '[Lampiran]_SMC_Tanh-Lambda5K1'
-Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=1, smctype=3, DISTURBANCE = DISTURBANCE)
+Quadcopter = quadcopter(Ts=0.02, experiment=experiment_name, controller=0, smctype=3, DISTURBANCE = DISTURBANCE)
 
 waypoints = WaypointGenerator().trajectory(state=1)
 
@@ -108,7 +108,11 @@ PositionRef = np.array([x_des, y_des, z_des])
 # Random Position
 #PositionRef = np.array([np.random.uniform(-1,1), np.random.uniform(-1,1),np.random.uniform(2,5)])
 
-Ref = ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2], facecolor=(0,0,0,0), marker='o', edgecolor='r')
+ax.scatter(PositionRef[0],PositionRef[1],PositionRef[2], facecolor=(0,0,0,0), marker='o', edgecolor='r')
+ax.scatter(0.8, -0.8, 3.5, facecolor=(0,0,0,0), marker='o', edgecolor='r')
+ax.scatter(0.3, 0.7, 1.5, facecolor=(0,0,0,0), marker='o', edgecolor='r')
+ax.scatter(0.8, -0.9, 4.5, facecolor=(0,0,0,0), marker='o', edgecolor='r')
+ax.scatter(-0.8,-0.8, 4.3, facecolor=(0,0,0,0), marker='o', edgecolor='r')
 
 # Create a another figure for pos and thrust
 fig2, ax2 = plt.subplots(3,1)
@@ -225,22 +229,15 @@ def update_point(n):
     # Interesting moving target? Below there are 4 waypoints making 
     #PositionRef[0] = PositionRef[0] + 0.002
     #PositionRef[1] = PositionRef[1] + 0.002
-    # if Quadcopter.Time > 20:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = -0.8
-    #     PositionRef[2] = 3.5
-    # if Quadcopter.Time > 30:
-    #     PositionRef[0] = 0.3
-    #     PositionRef[1] = 0.7
-    #     PositionRef[2] = 1.5
-    # if Quadcopter.Time > 40:
-    #     PositionRef[0] = 0.8
-    #     PositionRef[1] = -0.9
-    #     PositionRef[2] = 4.5
-    # if Quadcopter.Time > 50:
-    #     PositionRef[0] = -0.8
-    #     PositionRef[1] = -0.8
-    #     PositionRef[2] = 4.3
+    global PositionRef
+    if Quadcopter.Time > 10:
+        PositionRef = np.array([0.8,-0.8,3.5])
+    if Quadcopter.Time > 16:
+        PositionRef = np.array([0.3,0.7,1.5])
+    if Quadcopter.Time > 22:
+        PositionRef = np.array([0.8,-0.9,4.5])
+    if Quadcopter.Time > 28:
+        PositionRef = np.array([-0.8,-0.8,4.3])
 
     # Calculate dynmamic again for model precision so we can get the newest state from the drone
     Quadcopter.DynamicSolver()
