@@ -13,6 +13,15 @@ $ python run3DSimulation.py
 ```
 
 # What you can change
+
+    ├── build                   # Compiled files (alternatively `dist`)
+    ├── docs                    # Documentation files (alternatively `doc`)
+    ├── src                     # Source files (alternatively `lib` or `app`)
+    ├── test                    # Automated tests (alternatively `spec` or `tests`)
+    ├── tools                   # Tools and utilities
+    ├── LICENSE
+    └── README.md
+    
 In this simulation, I use a common cascade controller which is the first one is the position controller using a PID Controller and the second one is an attitude controller where I have two types of this controller. Which is using a PID Controller and five modifications of SMC Controller, namely SMC-Sign, SMC-Saturation, SMC-Tanh, and Integral SMC-Tanh. The files and folder structure will be listed below. If you find any error or bug please let me know.
 
 ├── run3DSimulation.py     # main file to run, it contains the Quadcopter Class representation for dynamics update
