@@ -1,6 +1,10 @@
 # Quadcopter Python 3D Plot Animation
 A Quadcopter simulation with 3D Plot Animation using matplotlib python package.  It contains a basic quadcopter dynamics model, hover controller, waypoint position control, and visualisation toolkit using matplotlib animation.
 
+<p align="center">
+  <img width="900" height="450" src="doc/quad_simulation.gif">
+</p>
+
 ## Motivation
 This project is my undergraduate thesis project about how to control a quadcopter using an Integrated Sliding Mode Control. This project serve me with two purpose: that is as a learning module how to build a model to explain how Quadcopter behave and as a ground level for tuning my parameters to control the Quadcopter. For me, there are already many interesting projects around already, like vision-based SLAM, hover control and advance maneuver, etc. However, there are very few open-source quadcopter simulator that helps a beginner(possibly me) to overcome the mental barrier of understanding the underlying physics behind the model of the Quadcopter and a simple plot animation for visualizing this simulation for easy debugging. This project is a simple Quadcopter simulation in 3D Plot Animation, where I was heavily inspired by this code structure from [SKYnSPACE](https://github.com/SKYnSPACE/AE450/tree/master/Lec10). I hope this helps for anyone to learn how Quadcopter works
 
@@ -30,6 +34,11 @@ So it the `run3DSimulation.py`, it's the main file you want to run, where you ca
 in `lib`, there is little you can change, but hey feel free to break it. Where in `windModel` it contains the Dryden Wind Turbulence Model. You can change the possible height of the Quadcopter is flying for better simulation prediction.
 
 ## System Control Structure
+
+<p align="center">
+  <img width="900" height="450" src="doc/Architecture.png">
+</p>
+
 First off, I used the template of common cascade controller and for the calculation of the simulation I just some simple Euler Integration Method for accessing the observable variables that we need such as the velocity of the object and the angles of that time point in the simulation. In this simulation, for the simulate the quadcopter move I don't include a motor model, but directly push thrust into the dynamcis quadcopter model. I just the motor parameters(in this case I use DJI Tello), to calculate the upper-lower bound limit of the Quadcopter can have. The current parameters are set to roughly match the characteristics of a DJI Tello that I have in my lab. You can see this calculation reference [here](https://wilselby.com/research/arducopter/controller-design).
 
 ### Simulation
@@ -40,7 +49,7 @@ In this simulation, as I spoken before I divided the controller to Position Cont
 
 ## Known Issues
 * When we set Time sampling  beyond 0.1s, It breaks. My predictions is that because I update my state through euler derivation method it become messed up where I use time sampling as my derivative calculation.
-* This is from you incapable slave, such as myself :). Inconsistent the use of Quadcopter models inside the position controller for conversion from position error to desired angles where it was used in attitude controller. I'm still indecisive for this application. Feel free to raise the issue or contact me if you have brilliant idea regarding the dynamics. I'm stuck
+* This is from me as incapable slave :). Inconsistent the use of Quadcopter models inside the position controller for conversion from position error to desired angles where it was used in attitude controller. I'm still indecisive for this application. Feel free to raise the issue or contact me if you have brilliant idea regarding the dynamics. I'm stuck
 
 ## Possible Development
 * Sensor Emulation in the Simulation add a filter for that like Kalman Filter. I see some possible integration like [this](https://openimu.readthedocs.io/en/latest/simulation.html), but hey you can try it or maybe if I have the will to comeback and update this. Because right now, the state variables are being supplied directly from the model (In my opinion is a bit cheating)
