@@ -22,6 +22,10 @@ $ python run3DSimulation.py
 In this simulation, I use a common cascade controller which is the first one is the position controller using a PID Controller and the second one is an attitude controller where I have two types of this controller. Which is using a PID Controller and five modifications of SMC Controller, namely SMC-Sign, SMC-Saturation, SMC-Tanh, and Integral SMC-Tanh. The files and folder structure listen above. If you find any error or bug please let me know.
 
 So it the `run3DSimulation.py`, it's the main file you want to run, where you can find the class variable Quadcopter. Here I have provided a simple change parameter you can use
+* Ts(Time Sampling) : Used to define how fast the simulation runs. Value of in format of seconds. Default to 0.02s. Used to define how fast the simulator runs.
+* controller : a decision variable, use 0 for choosing PID as an attitude controller and 1 for SMC Controller
+* smctype : a decision variable, there are 5 mode for this, feel free to choose them, details in file `lib\controller` SMC function
+* DISTURBANCE : Set `True` to apply wind disturbance to simulation
 
 in `lib`, there is little you can change, but hey feel free to break it. Where in `windModel` it contains the Dryden Wind Turbulence Model. You can change the possible height of the Quadcopter is flying for better simulation prediction.
 
