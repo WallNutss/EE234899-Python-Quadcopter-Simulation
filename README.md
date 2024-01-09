@@ -36,7 +36,7 @@ in `lib`, there is little you can change, but hey feel free to break it. Where i
 ## System Control Structure
 
 <p align="center">
-  <img width="49%" src="doc/Architecture.png">
+  <img width="79%" src="doc/Architecture.png">
 </p>
 
 First off, I used the template of common cascade controller and for the calculation of the simulation I just some simple Euler Integration Method for accessing the observable variables that we need such as the velocity of the object and the angles of that time point in the simulation. In this simulation, for the simulate the quadcopter move I don't include a motor model, but directly push thrust into the dynamcis quadcopter model. I just the motor parameters(in this case I use DJI Tello), to calculate the upper-lower bound limit of the Quadcopter can have. The current parameters are set to roughly match the characteristics of a DJI Tello that I have in my lab. You can see this calculation reference [here](https://wilselby.com/research/arducopter/controller-design).
