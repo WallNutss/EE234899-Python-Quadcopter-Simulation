@@ -72,3 +72,21 @@ Muhammad Juniarto
 
 Email: wallnuts73@gmail.com
 
+## Reference
+<a id="1">[1]</a> 
+Eltayeb, A., Rahmat, M. F., Basri, M. A. M., Eltoum, M. A. M., & Mahmoud, M. S. (2022)
+Integral Adaptive Sliding Mode Control for Quadcopter UAV Under Variable Payload and Disturbance
+IEEE Access, 10, 94754–94764
+Thank you for the Author, I'm using it's algorithm when thinking this simulation
+
+<a id="1">[2]</a> 
+Giernacki, W., Rao, J., Sladic, S., Bondyra, A., Retinger, M., & Espinoza-Fraire, T. (2022)
+DJI Tello Quadrotor as a Platform for Research and Education in Mobile Robotics and Control Engineering
+2022 International Conference on Unmanned Aircraft Systems, ICUAS 2022, 735–744
+Thank you for the author, I'm using it parameter as this simulation base model
+
+<a id="1">[3]</a> 
+Abichandani, P., Lobo, D., Ford, G., Bucci, D., & Kam, M. (2020)
+Wind Measurement and Simulation Techniques in Multi-Rotor Small Unmanned Aerial Vehicles
+IEEE Access, 8, 54910–54927
+Thank you for the author, I'm lazy af modelling the wind model even bother make sense of it. Author already have it done in Python format, and I'm borrowing it :)
