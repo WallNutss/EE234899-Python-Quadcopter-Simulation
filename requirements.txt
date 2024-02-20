@@ -1,0 +1,4 @@
+matploblib >= 3.5.2     # Version Matching to author. Must be minimum version 3.5.2
+keyboard                   
+scikit-learn            
+pandas                  # Any version will do

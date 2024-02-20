@@ -9,10 +9,11 @@ A Quadcopter simulation with 3D Plot Animation using matplotlib python package. 
 This project is my undergraduate thesis project about how to control a quadcopter using an Integrated Sliding Mode Control. This project serve me with two purpose: that is as a learning module how to build a model to explain how Quadcopter behave and as a ground level for tuning my parameters to control the Quadcopter. For me, there are already many interesting projects around already, like vision-based SLAM, hover control and advance maneuver, etc. However, there are very few open-source quadcopter simulator that helps a beginner(possibly me) to overcome the mental barrier of understanding the underlying physics behind the model of the Quadcopter and a simple plot animation for visualizing this simulation for easy debugging. This project is a simple Quadcopter simulation in 3D Plot Animation, where I was heavily inspired by this code structure from [SKYnSPACE](https://github.com/SKYnSPACE/AE450/tree/master/Lec10). I hope this helps for anyone to learn how Quadcopter works
 
 ## How to Run
-Clone the repository, move into the directory, and run the code:
+Clone the repository, move into the directory, install the necessary library to run the code and run the code:
 ```sh
 $ git clone https://github.com/WallNutss/EE234899-Python-Quadcopter-Simulation.git
 $ cd EE234899-Python-Quadcopter-Simulation
+$ pip install -r requirements.txt
 $ python run3DSimulation.py
 ```
 
