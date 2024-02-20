@@ -37,7 +37,7 @@ in `lib`, there is little you can change, but hey feel free to break it. Where i
 ## System Control Structure
 
 <p align="center">
-  <img width="685" height="235" src="doc/Architecture.png">
+  <img width="79%" src="doc/Architecture.png">
 </p>
 
 First off, I used the template of common cascade controller and for the calculation of the simulation I just some simple Euler Integration Method for accessing the observable variables that we need such as the velocity of the object and the angles of that time point in the simulation. In this simulation, for the simulate the quadcopter move I don't include a motor model, but directly push thrust into the dynamcis quadcopter model. I just the motor parameters(in this case I use DJI Tello), to calculate the upper-lower bound limit of the Quadcopter can have. The current parameters are set to roughly match the characteristics of a DJI Tello that I have in my lab. You can see this calculation reference [here](https://wilselby.com/research/arducopter/controller-design).
@@ -73,3 +73,21 @@ Muhammad Juniarto
 
 Email: wallnuts73@gmail.com
 
+## Reference
+<a id="1">[1]</a> 
+Eltayeb, A., Rahmat, M. F., Basri, M. A. M., Eltoum, M. A. M., & Mahmoud, M. S. (2022)
+Integral Adaptive Sliding Mode Control for Quadcopter UAV Under Variable Payload and Disturbance
+IEEE Access, 10, 94754–94764
+Thank you for the Author, I'm using it's algorithm when thinking this simulation
+
+<a id="1">[2]</a> 
+Giernacki, W., Rao, J., Sladic, S., Bondyra, A., Retinger, M., & Espinoza-Fraire, T. (2022)
+DJI Tello Quadrotor as a Platform for Research and Education in Mobile Robotics and Control Engineering
+2022 International Conference on Unmanned Aircraft Systems, ICUAS 2022, 735–744
+Thank you for the author, I'm using it parameter as this simulation base model
+
+<a id="1">[3]</a> 
+Abichandani, P., Lobo, D., Ford, G., Bucci, D., & Kam, M. (2020)
+Wind Measurement and Simulation Techniques in Multi-Rotor Small Unmanned Aerial Vehicles
+IEEE Access, 8, 54910–54927
+Thank you for the author, I'm lazy af modelling the wind model even bother make sense of it. Author already have it done in Python format, and I'm borrowing it :)
